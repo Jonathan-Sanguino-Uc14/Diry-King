@@ -264,8 +264,10 @@ body { font-family: var(--fuente); background: var(--bg); color: var(--texto); h
     gap: 12px;
     width: 100%;
     max-width: 340px;
-    max-height: 92vh;
+    max-height: 90vh;
     overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
 }
 
 /* El ticket en sí — diseño tipo rollo de papel */
@@ -456,19 +458,29 @@ body { font-family: var(--fuente); background: var(--bg); color: var(--texto); h
    Ocultamos todo excepto el ticket.
    ===================================================== */
 @media print {
+    @page {
+        size: 80mm auto;   /* Ancho térmico, alto automático al contenido */
+        margin: 4mm;
+    }
     body * { visibility: hidden; }
     #ticket-imprimible,
     #ticket-imprimible * { visibility: visible; }
     #ticket-imprimible {
-        position: fixed;
+        position: absolute;
         top: 0; left: 0;
-        width: 80mm;       /* Ancho estándar de impresora térmica */
-        padding: 8mm;
+        width: 72mm;
+        padding: 0;
         box-shadow: none;
         border: none;
         font-size: 9pt;
     }
+    .ticket-factura-qr canvas,
+    .ticket-factura-qr img {
+        width: 72px !important;
+        height: 72px !important;
+    }
     .ticket-separador { color: #999; }
+    .modal-ticket-wrapper { overflow: visible; max-height: none; }
 }
 
 ::-webkit-scrollbar { width: 5px; }
