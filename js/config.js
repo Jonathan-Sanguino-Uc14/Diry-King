@@ -57,8 +57,7 @@ const NEGOCIO = {
 /* URL base del sitio — se usa para generar el QR de autofacturación.
    Cambia esto a tu dominio real cuando subas el proyecto.
    Ej: "https://dairyking.com" o "https://tudominio.com"        */
-const SITIO_URL = "http://localhost";
-
+const SITIO_URL = "https://jonathan-sanguino-uc14.github.io/Diry-King";
 /* Usos de CFDI más comunes (SAT México).
    El cliente elige uno al facturar.                             */
 const USOS_CFDI = [
