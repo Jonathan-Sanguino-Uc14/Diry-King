@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <!--
+        META VIEWPORT: Le dice al navegador que adapte el ancho de la página
+        al ancho real del dispositivo. Sin esto, en móvil se ve todo miniatura.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+
+    <!--
+        .container: Es el "cajón" principal que divide la pantalla en dos mitades.
+        Contiene la imagen de la izquierda y el formulario de la derecha.
+    -->
+    <div class="container">
+
+        <!--
+            .lado-imagen: La mitad izquierda, solo visual/decorativa.
+            Tiene un overlay oscuro encima de la imagen para dar profundidad.
+        -->
+        <div class="lado-imagen" aria-hidden="true">
+            <div class="overlay"></div>
+            <img src="../assets/images/login.png" alt="">
+            <div class="imagen-texto">
+                <span>Bienvenido</span>
+                <p>Accede a tu panel de control</p>
+            </div>
+        </div>
+
+        <!--
+            .lado-login: La mitad derecha, donde está el formulario real.
+            role="main" le indica a lectores de pantalla que aquí está el contenido principal.
+        -->
+        <div class="lado-login" role="main">
+            <div class="login-card">
+
+                <div class="login-header">
+                    <img src="../assets/images/logo2.png" alt="Logo de la empresa" class="logo">
+                    <h1>Iniciar Sesión</h1>
+                    <p>Ingresa tus credenciales para continuar</p>
+                </div>
+
+                <!--
+                    novalidate: Desactiva la validación nativa del navegador
+                    para que nosotros controlemos los mensajes de error con JS.
+                -->
+                <form id="loginForm" novalidate>
+
+                    <!--
+                        .campo-grupo: Cada input vive dentro de su propio grupo.
+                        Esto facilita mostrar/ocultar errores debajo de cada campo.
+                    -->
+                    <div class="campo-grupo">
+                        <!--
+                            <label for="usuario">: El atributo "for" conecta esta
+                            etiqueta con el input que tiene id="usuario".
+                            Al hacer click en el label, el input recibe el foco.
+                            Esencial para accesibilidad.
+                        -->
+                        <label for="usuario">Usuario</label>
+                        <input
+                            type="text"
+                            id="usuario"
+                            name="usuario"
+                            placeholder="Ej: dueno"
+                            autocomplete="username"
+                            required
+                        >
+                        <!--
+                            .error-msg: Párrafo vacío que llenamos con JS cuando
+                            hay un error en este campo específico.
+                            aria-live="polite" hace que el lector de pantalla
+                            anuncie el mensaje cuando aparezca.
+                        -->
+                        <p class="error-msg" id="error-usuario" aria-live="polite"></p>
+                    </div>
+
+                    <div class="campo-grupo">
+                        <label for="password">Contraseña</label>
+                        <div class="input-password-wrapper">
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="••••••••"
+                                autocomplete="current-password"
+                                required
+                            >
+                            <!--
+                                Botón para mostrar/ocultar contraseña.
+                                type="button" evita que haga submit del form.
+                                aria-label describe su función para lectores de pantalla.
+                            -->
+                            <button type="button" id="togglePassword" aria-label="Mostrar contraseña">
+                                👁
+                            </button>
+                        </div>
+                        <p class="error-msg" id="error-password" aria-live="polite"></p>
+                    </div>
+
+                    <!--
+                        .error-general: Mensaje de error que aparece debajo del botón
+                        cuando usuario o contraseña son incorrectos (no revelamos cuál).
+                    -->
+                    <p class="error-general" id="error-general" aria-live="assertive"></p>
+
+                    <button type="submit" class="btn-entrar" id="btnSubmit">
+                        <span class="btn-texto">Entrar</span>
+                        <!--
+                            .spinner: Animación de carga que se muestra mientras
+                            "procesamos" el login (simula una llamada a servidor).
+                        -->
+                        <span class="spinner" aria-hidden="true"></span>
+                    </button>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/app.js"></script>
+
+</body>
+</html>

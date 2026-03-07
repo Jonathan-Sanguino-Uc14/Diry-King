@@ -1,0 +1,435 @@
+/* =====================================================
+   VARIABLES CSS
+   Son como "constantes" en programación: defines el valor
+   una vez y lo reutilizas en todo el archivo.
+   Si quieres cambiar el color principal, solo cambias aquí.
+   ===================================================== */
+:root {
+    --color-fondo: #0f0f13;
+    --color-card: #1a1a22;
+    --color-acento: #c9a96e;        /* Dorado cálido */
+    --color-acento-hover: #e2c48a;
+    --color-texto: #f0ede8;
+    --color-texto-suave: #8a8798;
+    --color-error: #e07070;
+    --color-borde: #2e2d3a;
+    --color-input-fondo: #13131a;
+
+    --radio-borde: 12px;
+    --transicion: 0.3s ease;
+
+    /* Fuentes importadas desde Google Fonts en el HTML */
+    --fuente-titulo: 'Playfair Display', Georgia, serif;
+    --fuente-cuerpo: 'DM Sans', sans-serif;
+}
+
+/* =====================================================
+   RESET
+   Los navegadores tienen estilos por defecto (márgenes,
+   paddings, etc). El reset los elimina para que todos
+   los navegadores partan del mismo punto limpio.
+   ===================================================== */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* El padding y border NO aumentan el tamaño del elemento */
+}
+
+/* =====================================================
+   BASE
+   ===================================================== */
+body {
+    font-family: var(--fuente-cuerpo);
+    background-color: var(--color-fondo);
+    color: var(--color-texto);
+    height: 100vh;
+    overflow: hidden; /* Evita scroll no deseado */
+}
+
+/* =====================================================
+   CONTENEDOR PRINCIPAL
+   display: flex hace que los hijos (.lado-imagen y
+   .lado-login) se coloquen uno al lado del otro.
+   ===================================================== */
+.container {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+}
+
+/* =====================================================
+   LADO IMAGEN (mitad izquierda)
+   position: relative permite posicionar elementos hijos
+   (.overlay, .imagen-texto) de forma absoluta dentro.
+   ===================================================== */
+.lado-imagen {
+    width: 50%;
+    position: relative;        /* Contexto para hijos absolutos */
+    overflow: hidden;          /* Recorta lo que se salga del contenedor */
+}
+
+.lado-imagen img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;         /* La imagen cubre todo sin deformarse */
+    display: block;
+    /* Animación: la imagen entra deslizándose desde la izquierda */
+    animation: slideInLeft 0.8s ease forwards;
+}
+
+/*
+    OVERLAY: Capa semitransparente encima de la imagen.
+    position: absolute + inset: 0 hace que cubra exactamente
+    todo el padre (.lado-imagen).
+    El gradiente va de negro en la base hasta transparente arriba.
+*/
+.overlay {
+    position: absolute;
+    inset: 0;                  /* Equivale a top/right/bottom/left: 0 */
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.75) 0%,
+        rgba(0, 0, 0, 0.2) 60%,
+        transparent 100%
+    );
+    z-index: 1;                /* Encima de la imagen, debajo del texto */
+}
+
+/*
+    .imagen-texto: El texto que flota sobre la imagen.
+    position: absolute lo saca del flujo normal y lo
+    ubica exactamente donde indicamos.
+*/
+.imagen-texto {
+    position: absolute;
+    bottom: 48px;
+    left: 48px;
+    z-index: 2;                /* Encima del overlay */
+    animation: fadeInUp 1s ease 0.4s both; /* Entra con retraso de 0.4s */
+}
+
+.imagen-texto span {
+    display: block;
+    font-family: var(--fuente-titulo);
+    font-size: clamp(2rem, 3vw, 3.5rem); /* Tamaño fluido: mínimo 2rem, ideal 3vw, máximo 3.5rem */
+    color: var(--color-acento);
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.imagen-texto p {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.7);
+    font-weight: 300;
+    letter-spacing: 0.05em;
+}
+
+/* =====================================================
+   LADO LOGIN (mitad derecha)
+   Usamos flexbox para centrar .login-card tanto
+   horizontal como verticalmente.
+   ===================================================== */
+.lado-login {
+    width: 50%;
+    display: flex;
+    justify-content: center;   /* Centra horizontalmente */
+    align-items: center;       /* Centra verticalmente */
+    padding: 40px;
+    background-color: var(--color-fondo);
+}
+
+/*
+    .login-card: La "tarjeta" blanca/oscura que contiene
+    el formulario. width: 100% + max-width limita su ancho
+    máximo para que no quede demasiado ancho en pantallas grandes.
+*/
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    animation: fadeInUp 0.7s ease 0.2s both;
+}
+
+/* =====================================================
+   ENCABEZADO DEL LOGIN
+   ===================================================== */
+.login-header {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.logo {
+    height: 48px;
+    width: auto;
+    margin-bottom: 24px;
+    object-fit: contain;
+}
+
+.login-header h1 {
+    font-family: var(--fuente-titulo);
+    font-size: 2rem;
+    color: var(--color-texto);
+    margin-bottom: 8px;
+}
+
+.login-header p {
+    color: var(--color-texto-suave);
+    font-size: 0.9rem;
+    font-weight: 300;
+}
+
+/* =====================================================
+   CAMPOS DEL FORMULARIO
+   ===================================================== */
+.campo-grupo {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;    /* Label arriba, input abajo */
+    gap: 6px;                  /* Espacio entre label e input */
+}
+
+.campo-grupo label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--color-texto-suave);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.campo-grupo input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--color-input-fondo);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio-borde);
+    color: var(--color-texto);
+    font-family: var(--fuente-cuerpo);
+    font-size: 0.95rem;
+    /*
+        transition: anima el cambio de borde cuando el input
+        recibe foco. Sin esto el cambio es instantáneo y brusco.
+    */
+    transition: border-color var(--transicion), box-shadow var(--transicion);
+    outline: none;             /* Quitamos el outline por defecto del navegador */
+}
+
+/*
+    :focus: Se aplica cuando el usuario está escribiendo en el input.
+    Mostramos un borde de color acento + sombra sutil.
+*/
+.campo-grupo input:focus {
+    border-color: var(--color-acento);
+    box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.15);
+}
+
+/*
+    :placeholder: Estiliza el texto gris de "placeholder"
+    que aparece cuando el input está vacío.
+*/
+.campo-grupo input::placeholder {
+    color: #3a3948;
+}
+
+/* =====================================================
+   INPUT DE CONTRASEÑA CON BOTÓN VER/OCULTAR
+   position: relative en el wrapper + absolute en el botón
+   permite superponer el botón dentro del input.
+   ===================================================== */
+.input-password-wrapper {
+    position: relative;
+}
+
+.input-password-wrapper input {
+    /* padding-right extra para que el texto no quede bajo el botón */
+    padding-right: 48px;
+}
+
+#togglePassword {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);  /* Centra verticalmente */
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    color: var(--color-texto-suave);
+    padding: 4px;
+    transition: color var(--transicion);
+    line-height: 1;
+}
+
+#togglePassword:hover {
+    color: var(--color-acento);
+}
+
+/* =====================================================
+   MENSAJES DE ERROR
+   Por defecto están vacíos e invisibles.
+   JS les pone texto y añade la clase .visible.
+   ===================================================== */
+.error-msg {
+    font-size: 0.78rem;
+    color: var(--color-error);
+    min-height: 16px;          /* Reserva espacio para no mover el layout */
+    transition: opacity var(--transicion);
+}
+
+.error-general {
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-error);
+    margin-bottom: 16px;
+    min-height: 20px;
+    transition: opacity var(--transicion);
+}
+
+/* Clase que añade JS para mostrar el error */
+.campo-grupo.tiene-error input {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(224, 112, 112, 0.12);
+}
+
+/* =====================================================
+   BOTÓN DE SUBMIT
+   ===================================================== */
+.btn-entrar {
+    width: 100%;
+    padding: 15px;
+    background: var(--color-acento);
+    color: #0f0f13;
+    border: none;
+    border-radius: var(--radio-borde);
+    font-family: var(--fuente-cuerpo);
+    font-size: 0.95rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: background var(--transicion), transform var(--transicion);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.btn-entrar:hover {
+    background: var(--color-acento-hover);
+}
+
+/* :active: cuando el usuario está presionando el botón */
+.btn-entrar:active {
+    transform: scale(0.98);
+}
+
+/* Estado de carga: opacidad reducida y cursor diferente */
+.btn-entrar.cargando {
+    opacity: 0.8;
+    cursor: not-allowed;
+    pointer-events: none;      /* Impide hacer click mientras carga */
+}
+
+/* =====================================================
+   SPINNER DE CARGA
+   border-radius: 50% lo hace circular.
+   La animación "girar" rota el borde superior de color.
+   ===================================================== */
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(15,15,19,0.3);
+    border-top-color: #0f0f13;
+    border-radius: 50%;
+    display: none;             /* Oculto por defecto */
+    animation: girar 0.7s linear infinite;
+}
+
+/* Solo se muestra cuando el botón tiene la clase .cargando */
+.btn-entrar.cargando .spinner {
+    display: block;
+}
+
+.btn-entrar.cargando .btn-texto {
+    opacity: 0.7;
+}
+
+/* =====================================================
+   ANIMACIONES
+   @keyframes define los fotogramas de una animación.
+   La animación se aplica con la propiedad "animation".
+   ===================================================== */
+
+/* Elementos que entran deslizándose desde abajo */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Imagen que entra desde la izquierda */
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Rotación infinita para el spinner */
+@keyframes girar {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* =====================================================
+   RESPONSIVE — DISEÑO PARA MÓVIL
+   @media (max-width: 768px) significa: "aplica estos
+   estilos SOLO si la pantalla tiene 768px o menos".
+   En móvil apilamos los dos lados verticalmente.
+   ===================================================== */
+@media (max-width: 768px) {
+    body {
+        overflow: auto;        /* En móvil sí permitimos scroll */
+    }
+
+    .container {
+        flex-direction: column; /* De fila a columna */
+        height: auto;
+        min-height: 100vh;
+    }
+
+    /* En móvil la imagen se convierte en un banner superior pequeño */
+    .lado-imagen {
+        width: 100%;
+        height: 200px;
+    }
+
+    .imagen-texto {
+        bottom: 20px;
+        left: 24px;
+    }
+
+    .imagen-texto span {
+        font-size: 1.8rem;
+    }
+
+    /* El formulario ocupa todo el ancho */
+    .lado-login {
+        width: 100%;
+        padding: 40px 24px;
+        align-items: flex-start;
+    }
+
+    .login-card {
+        max-width: 100%;
+    }
+}

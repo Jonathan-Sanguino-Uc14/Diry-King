@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel del Dueño</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inconsolata:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/dueño.css">
+</head>
+<body data-roles-permitidos="dueño,gerente">
+
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <span class="logo-icon">◈</span>
+            <span class="logo-texto">ADMIN</span>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="nav-item activo" data-seccion="dashboard">
+                <span class="nav-icon">▦</span><span>Dashboard</span>
+            </button>
+            <button class="nav-item" data-seccion="productos">
+                <span class="nav-icon">⊞</span><span>Productos</span>
+            </button>
+            <button class="nav-item" data-seccion="calendario">
+                <span class="nav-icon">◫</span><span>Calendario</span>
+            </button>
+        </nav>
+        <button class="btn-cerrar-sesion" onclick="sessionStorage.removeItem('sesion'); window.location.href='../pages/index.html'">
+            <span>⎋</span> Salir
+        </button>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="topbar">
+            <div class="topbar-titulo">
+                <h1 id="titulo-seccion">Dashboard</h1>
+                <p id="subtitulo-seccion">Resumen del día</p>
+            </div>
+            <div class="topbar-fecha"><span id="fecha-hoy"></span></div>
+            <div class="topbar-usuario">
+                <button class="btn-cambiar-panel" id="btn-cambiar-panel" style="display:none">🛒 Punto de venta</button>
+                <span class="usuario-info"><span id="nombre-usuario"></span> · <span id="rol-usuario"></span></span>
+            </div>
+        </header>
+
+        <!-- DASHBOARD -->
+        <section id="seccion-dashboard" class="seccion activa">
+            <div class="cards-grid">
+                <div class="stat-card accent">
+                    <div class="stat-label">Ventas totales hoy</div>
+                    <div class="stat-valor" id="total-ventas-dia">$0.00</div>
+                    <div class="stat-sub" id="cantidad-ventas">0 transacciones</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Producto más vendido</div>
+                    <div class="stat-valor" id="producto-top">—</div>
+                    <div class="stat-sub" id="producto-top-cantidad">Sin ventas hoy</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total productos</div>
+                    <div class="stat-valor" id="total-productos">0</div>
+                    <div class="stat-sub">en inventario</div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Ventas individuales — hoy</h2>
+                    <div style="display:flex;gap:8px"><button class="btn-secundario" id="btn-exportar-excel">⬇ Excel</button><button class="btn-secundario" id="btn-registrar-venta">+ Registrar venta</button></div>
+                </div>
+                <div class="tabla-wrapper">
+                    <table class="tabla">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Tamaño</th>
+                                <th>Cantidad</th>
+                                <th>Precio unit.</th>
+                                <th>Total</th>
+                                <th>Hora</th>
+                                <th>Ticket</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-ventas-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- PRODUCTOS -->
+        <section id="seccion-productos" class="seccion">
+            <div class="filtros-bar">
+                <div class="filtros-categorias" id="filtros-categorias"></div>
+                <button class="btn-secundario" id="btn-gestionar-categorias">⊕ Categorías</button>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <h2 id="titulo-tabla-productos">Todos los productos</h2>
+                    <button class="btn-primario" id="btn-agregar-producto">+ Agregar producto</button>
+                </div>
+                <div class="tabla-wrapper">
+                    <table class="tabla">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Stock</th>
+                                <th>Categoría</th>
+                                <th>Tamaños</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-productos-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- CALENDARIO -->
+        <section id="seccion-calendario" class="seccion">
+            <div class="calendario-layout">
+                <div class="panel calendario-panel">
+                    <div class="panel-header">
+                        <button class="btn-nav-mes" id="btn-mes-anterior">‹</button>
+                        <h2 id="mes-actual"></h2>
+                        <button class="btn-nav-mes" id="btn-mes-siguiente">›</button>
+                    </div>
+                    <div class="calendario-dias-semana">
+                        <span>Dom</span><span>Lun</span><span>Mar</span>
+                        <span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+                    </div>
+                    <div class="calendario-grid" id="calendario-grid"></div>
+                </div>
+                <div class="panel entregas-panel">
+                    <div class="panel-header">
+                        <h2>Próximas entregas</h2>
+                        <button class="btn-primario" id="btn-agregar-entrega">+ Agregar</button>
+                    </div>
+                    <ul class="lista-entregas" id="lista-entregas"></ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL: Agregar/Editar Producto -->
+    <div class="modal-overlay" id="modal-producto">
+        <div class="modal modal-grande">
+            <div class="modal-header">
+                <h3 id="modal-producto-titulo">Agregar producto</h3>
+                <button class="modal-cerrar" data-modal="modal-producto">✕</button>
+            </div>
+            <form id="form-producto">
+                <div class="modal-dos-columnas">
+                    <div>
+                        <div class="campo-grupo">
+                            <label for="prod-nombre">Nombre</label>
+                            <input type="text" id="prod-nombre" placeholder="Ej: Café Americano" required>
+                        </div>
+                        <div class="campo-grupo">
+                            <label for="prod-stock">Stock</label>
+                            <input type="number" id="prod-stock" placeholder="0" min="0" required>
+                        </div>
+                        <div class="campo-grupo" id="prod-precio-grupo">
+                            <label for="prod-precio">Precio (sin tamaños)</label>
+                            <input type="number" id="prod-precio" placeholder="0.00" min="0" step="0.01">
+                        </div>
+                        <div class="campo-grupo">
+                            <label for="prod-categoria">Categoría</label>
+                            <select id="prod-categoria">
+                                <option value="">Sin categoría</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!--
+                        Columna derecha: tamaños fijos globales.
+                        El dueño activa los que aplican a este producto y les asigna precio.
+                        Mini / Chico / Mediano / Grande
+                    -->
+                    <div class="tamanos-columna">
+                        <div class="tamanos-header">
+                            <span class="campo-grupo-label">Tamaños (opcional)</span>
+                            <span class="tamanos-hint">Activa los tamaños que apliquen y pon su precio</span>
+                        </div>
+                        <div class="tamanos-lista-fija" id="tamanos-lista-fija">
+                            <!-- JS genera una fila por cada tamaño global -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-acciones">
+                    <button type="button" class="btn-secundario" id="btn-cancelar-producto">Cancelar</button>
+                    <button type="submit" class="btn-primario">Guardar producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Registrar Venta -->
+    <div class="modal-overlay" id="modal-venta">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Registrar venta</h3>
+                <button class="modal-cerrar" data-modal="modal-venta">✕</button>
+            </div>
+            <form id="form-venta">
+                <div class="campo-grupo">
+                    <label for="venta-producto">Producto</label>
+                    <select id="venta-producto" required></select>
+                </div>
+                <div class="campo-grupo" id="venta-tamano-grupo" style="display:none">
+                    <label for="venta-tamano">Tamaño</label>
+                    <select id="venta-tamano"></select>
+                </div>
+                <div class="campo-grupo">
+                    <label for="venta-cantidad">Cantidad</label>
+                    <input type="number" id="venta-cantidad" min="1" value="1" required>
+                </div>
+                <div class="modal-acciones">
+                    <button type="button" class="btn-secundario" data-modal="modal-venta">Cancelar</button>
+                    <button type="submit" class="btn-primario">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Gestionar Categorías -->
+    <div class="modal-overlay" id="modal-categorias">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Gestionar categorías</h3>
+                <button class="modal-cerrar" data-modal="modal-categorias">✕</button>
+            </div>
+            <form id="form-nueva-categoria">
+                <div class="campo-grupo">
+                    <label for="nueva-categoria">Nueva categoría</label>
+                    <div class="input-con-boton">
+                        <input type="text" id="nueva-categoria" placeholder="Ej: Bebidas calientes" required>
+                        <button type="submit" class="btn-primario">Agregar</button>
+                    </div>
+                </div>
+            </form>
+            <ul class="lista-categorias" id="lista-categorias-modal"></ul>
+        </div>
+    </div>
+
+    <!-- MODAL: Agregar Entrega -->
+    <div class="modal-overlay" id="modal-entrega">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Agregar entrega</h3>
+                <button class="modal-cerrar" data-modal="modal-entrega">✕</button>
+            </div>
+            <form id="form-entrega">
+                <div class="campo-grupo">
+                    <label for="entrega-producto">Producto</label>
+                    <input type="text" id="entrega-producto" placeholder="Ej: Café molido x50" required>
+                </div>
+                <div class="campo-grupo">
+                    <label for="entrega-fecha">Fecha de entrega</label>
+                    <input type="date" id="entrega-fecha" required>
+                </div>
+                <div class="modal-acciones">
+                    <button type="button" class="btn-secundario" data-modal="modal-entrega">Cancelar</button>
+                    <button type="submit" class="btn-primario">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Ver Ticket de venta -->
+    <div class="modal-overlay" id="modal-ticket-dueno">
+        <div class="modal-ticket-wrapper-dueno">
+            <div class="modal-ticket-dueno" id="ticket-dueno-imprimible">
+
+                <div class="ticket-negocio">
+                    <div class="ticket-negocio-nombre">HELADERÍA DAIRY KING</div>
+                    <div class="ticket-negocio-razon">Dairy King S.A. de C.V.</div>
+                    <div class="ticket-negocio-rfc">RFC: DKI230415ABC</div>
+                    <div class="ticket-negocio-dir">Av. Central #123, Cancún, Q. Roo</div>
+                    <div class="ticket-negocio-tel">Tel: 998-123-4567</div>
+                </div>
+
+                <div class="ticket-sep">- - - - - - - - - - - - - - - - - - -</div>
+
+                <div class="ticket-meta-d">
+                    <div class="ticket-meta-fila-d"><span>Ticket #</span><span id="dt-numero"></span></div>
+                    <div class="ticket-meta-fila-d"><span>Fecha</span><span id="dt-fecha"></span></div>
+                    <div class="ticket-meta-fila-d"><span>Hora</span><span id="dt-hora"></span></div>
+                </div>
+
+                <div class="ticket-sep">- - - - - - - - - - - - - - - - - - -</div>
+
+                <div class="ticket-col-header-d">
+                    <span>Producto</span><span>Cant.</span><span>P.U.</span><span>Total</span>
+                </div>
+                <div id="dt-items"></div>
+
+                <div class="ticket-sep">- - - - - - - - - - - - - - - - - - -</div>
+
+                <div class="ticket-nota-d" id="dt-nota-wrap" style="display:none">
+                    <span class="ticket-nota-lbl-d">Nota:</span>
+                    <span id="dt-nota"></span>
+                </div>
+
+                <div class="ticket-totales-d">
+                    <div class="ticket-fila-d"><span>Subtotal</span><span id="dt-subtotal"></span></div>
+                    <div class="ticket-fila-d"><span>IVA (16%)</span><span id="dt-iva"></span></div>
+                    <div class="ticket-fila-d ticket-fila-total-d"><span>TOTAL</span><span id="dt-total"></span></div>
+                </div>
+
+                <div class="ticket-sep">- - - - - - - - - - - - - - - - - - -</div>
+
+                <div class="ticket-pago-d">
+                    <div class="ticket-fila-d"><span>Forma de pago</span><span id="dt-metodo"></span></div>
+                    <div class="ticket-fila-d" id="dt-fila-recibido" style="display:none">
+                        <span>Efectivo recibido</span><span id="dt-recibido"></span>
+                    </div>
+                    <div class="ticket-fila-d ticket-cambio-d" id="dt-fila-cambio" style="display:none">
+                        <span>Cambio</span><span id="dt-cambio"></span>
+                    </div>
+                </div>
+
+                <div class="ticket-sep">- - - - - - - - - - - - - - - - - - -</div>
+
+                <div class="ticket-pie-d">
+                    <p>IVA incluido en el precio</p>
+                    <p>¡Gracias por su preferencia!</p>
+                </div>
+
+            </div>
+
+            <div class="ticket-acciones-d">
+                <button class="btn-imprimir-d" id="btn-imprimir-dueno">🖨 Imprimir</button>
+                <button class="btn-cerrar-ticket-d" id="btn-cerrar-ticket-dueno">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/dueño.js"></script>
+</body>
+</html>

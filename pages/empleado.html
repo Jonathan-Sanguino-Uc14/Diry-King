@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Punto de Venta</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/empleado.css">
+</head>
+<body data-roles-permitidos="empleado,gerente">
+
+    <header class="header">
+        <div class="header-left">
+            <div class="header-logo">
+                <span class="logo-dot"></span>
+                <span class="logo-nombre">Punto de Venta</span>
+            </div>
+            <div class="header-fecha" id="header-fecha"></div>
+        </div>
+        <div class="header-right">
+            <div class="header-hora" id="header-hora"></div>
+            <button class="btn-cambiar-panel" id="btn-cambiar-panel" style="display:none">⚙ Panel admin</button>
+            <span class="usuario-info"><span id="nombre-usuario"></span> · <span id="rol-usuario"></span></span>
+            <button class="btn-salir" onclick="sessionStorage.removeItem('sesion'); window.location.href='../pages/index.html'">Salir</button>
+        </div>
+    </header>
+
+    <div class="layout">
+
+        <!-- CATÁLOGO -->
+        <div class="catalogo-panel">
+            <div class="buscador-wrapper">
+                <span class="buscador-icono">⌕</span>
+                <input type="text" id="buscador" class="buscador-input" placeholder="Buscar producto..." autocomplete="off">
+                <button class="buscador-clear" id="buscador-clear" style="display:none">✕</button>
+            </div>
+            <div class="chips-categorias" id="chips-categorias"></div>
+            <div class="productos-grid" id="productos-grid"></div>
+        </div>
+
+        <!-- ORDEN -->
+        <div class="orden-panel">
+
+            <div class="orden-header">
+                <h2>Orden actual</h2>
+                <button class="btn-limpiar" id="btn-limpiar-orden">Limpiar</button>
+            </div>
+
+            <div class="orden-items" id="orden-items">
+                <div class="orden-vacia" id="orden-vacia">
+                    <span class="orden-vacia-icono">◻</span>
+                    <p>Agrega productos desde el catálogo</p>
+                </div>
+            </div>
+
+            <!-- Comentario general de la orden -->
+            <div class="comentario-orden-seccion">
+                <label for="comentario-orden" class="comentario-label">
+                    💬 Nota de la orden
+                </label>
+                <textarea
+                    id="comentario-orden"
+                    class="comentario-textarea"
+                    placeholder="Ej: cliente con alergia a nueces, mesa 4..."
+                    rows="2"
+                ></textarea>
+            </div>
+
+            <div class="orden-totales">
+                <div class="orden-total-fila">
+                    <span>Subtotal</span>
+                    <span id="subtotal">$0.00</span>
+                </div>
+                <div class="orden-total-fila grande">
+                    <span>Total</span>
+                    <span id="total-orden">$0.00</span>
+                </div>
+            </div>
+
+            <!-- MÉTODO DE PAGO -->
+            <div class="metodo-pago-seccion">
+                <p class="metodo-label">Método de pago</p>
+                <div class="metodo-botones">
+                    <button class="btn-metodo activo" data-metodo="efectivo">
+                        <span class="metodo-icono">💵</span> Efectivo
+                    </button>
+                    <button class="btn-metodo" data-metodo="tarjeta">
+                        <span class="metodo-icono">💳</span> Tarjeta
+                    </button>
+                </div>
+
+                <div class="tipo-tarjeta-seccion" id="tipo-tarjeta-seccion" style="display:none">
+                    <p class="metodo-label" style="margin-top:12px">Tipo de tarjeta</p>
+                    <div class="metodo-botones">
+                        <button class="btn-tipo activo" data-tipo="debito">Débito</button>
+                        <button class="btn-tipo" data-tipo="credito">Crédito</button>
+                    </div>
+                </div>
+
+                <div class="efectivo-seccion" id="efectivo-seccion">
+                    <div class="efectivo-row">
+                        <div class="campo-grupo">
+                            <label for="monto-recibido">Con cuánto paga</label>
+                            <input type="number" id="monto-recibido" placeholder="0.00" min="0" step="0.50">
+                        </div>
+                        <div class="cambio-display">
+                            <span class="cambio-label">Cambio</span>
+                            <span class="cambio-valor" id="cambio-valor">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-confirmar" id="btn-confirmar">Confirmar venta</button>
+
+        </div>
+    </div>
+
+    <!-- MODAL: Seleccionar tamaño + comentario por producto -->
+    <!--
+        Este modal aparece cuando el empleado hace click en un producto
+        QUE TIENE tamaños definidos. Le pide que elija el tamaño
+        antes de agregar al carrito. También tiene campo de comentario por producto.
+        Si el producto NO tiene tamaños, va directo al carrito sin este modal.
+    -->
+    <div class="modal-overlay" id="modal-tamano">
+        <div class="modal-tamano-card">
+            <div class="modal-tamano-header">
+                <div>
+                    <p class="modal-tamano-categoria" id="mtam-categoria"></p>
+                    <h3 id="mtam-nombre"></h3>
+                </div>
+                <button class="btn-modal-cerrar" id="btn-cerrar-modal-tamano">✕</button>
+            </div>
+
+            <p class="modal-tamano-label">Selecciona el tamaño</p>
+            <div class="tamanos-opciones" id="tamanos-opciones">
+                <!-- JS lo llena con las opciones de este producto -->
+            </div>
+
+            <!-- Comentario por este producto específico -->
+            <div class="campo-comentario">
+                <label for="comentario-producto" class="modal-tamano-label">
+                    Nota del producto <span style="color:var(--texto-suave);font-weight:400">(opcional)</span>
+                </label>
+                <textarea
+                    id="comentario-producto"
+                    class="comentario-textarea"
+                    placeholder="Ej: sin azúcar, extra shot, sin hielo..."
+                    rows="2"
+                ></textarea>
+            </div>
+
+            <button class="btn-confirmar-tamano" id="btn-confirmar-tamano">
+                Agregar a la orden
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: Comentario por producto sin tamaño -->
+    <!--
+        Si el producto NO tiene tamaños, mostramos este modal más simple
+        para que igual puedan agregar un comentario al producto.
+    -->
+    <div class="modal-overlay" id="modal-comentario-simple">
+        <div class="modal-tamano-card">
+            <div class="modal-tamano-header">
+                <div>
+                    <p class="modal-tamano-categoria" id="mcom-categoria"></p>
+                    <h3 id="mcom-nombre"></h3>
+                    <p class="mcom-precio" id="mcom-precio"></p>
+                </div>
+                <button class="btn-modal-cerrar" id="btn-cerrar-modal-comentario">✕</button>
+            </div>
+
+            <div class="campo-comentario">
+                <label for="comentario-producto-simple" class="modal-tamano-label">
+                    Nota del producto <span style="color:var(--texto-suave);font-weight:400">(opcional)</span>
+                </label>
+                <textarea
+                    id="comentario-producto-simple"
+                    class="comentario-textarea"
+                    placeholder="Ej: sin cebolla, bien cocido, extra salsa..."
+                    rows="2"
+                ></textarea>
+            </div>
+
+            <button class="btn-confirmar-tamano" id="btn-confirmar-comentario-simple">
+                Agregar a la orden
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: Ticket de confirmación -->
+    <div class="modal-overlay" id="modal-confirmacion">
+        <div class="modal-ticket-wrapper">
+
+            <!-- Ticket imprimible -->
+            <div class="modal-ticket" id="ticket-imprimible">
+
+                <!-- ENCABEZADO DEL NEGOCIO -->
+                <div class="ticket-negocio">
+                    <div class="ticket-negocio-nombre">HELADERÍA DAIRY KING</div>
+                    <div class="ticket-negocio-razon">Dairy King S.A. de C.V.</div>
+                    <div class="ticket-negocio-rfc">RFC: DKI230415ABC</div>
+                    <div class="ticket-negocio-dir">Av. Central #123, Cancún, Q. Roo</div>
+                    <div class="ticket-negocio-tel">Tel: 998-123-4567</div>
+                </div>
+
+                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+
+                <!-- DATOS DE LA VENTA -->
+                <div class="ticket-meta">
+                    <div class="ticket-meta-fila">
+                        <span>Ticket #</span>
+                        <span id="ticket-numero"></span>
+                    </div>
+                    <div class="ticket-meta-fila">
+                        <span>Fecha</span>
+                        <span id="ticket-fecha"></span>
+                    </div>
+                    <div class="ticket-meta-fila">
+                        <span>Hora</span>
+                        <span id="ticket-hora"></span>
+                    </div>
+                </div>
+
+                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+
+                <!-- PRODUCTOS -->
+                <div class="ticket-columnas-header">
+                    <span>Producto</span>
+                    <span>Cant.</span>
+                    <span>P.U.</span>
+                    <span>Total</span>
+                </div>
+                <div class="ticket-items" id="ticket-items"></div>
+
+                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+
+                <!-- NOTA DE ORDEN -->
+                <div class="ticket-nota-orden" id="ticket-nota-orden" style="display:none">
+                    <span class="ticket-nota-label">Nota:</span>
+                    <span id="ticket-nota-texto"></span>
+                </div>
+
+                <!-- TOTALES E IVA -->
+                <div class="ticket-totales">
+                    <div class="ticket-fila">
+                        <span>Subtotal</span>
+                        <span id="ticket-subtotal"></span>
+                    </div>
+                    <div class="ticket-fila">
+                        <span>IVA (16%)</span>
+                        <span id="ticket-iva"></span>
+                    </div>
+                    <div class="ticket-fila ticket-fila-total">
+                        <span>TOTAL</span>
+                        <span id="ticket-total"></span>
+                    </div>
+                </div>
+
+                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+
+                <!-- PAGO -->
+                <div class="ticket-pago">
+                    <div class="ticket-fila">
+                        <span>Forma de pago</span>
+                        <span id="ticket-metodo"></span>
+                    </div>
+                    <div class="ticket-fila" id="ticket-fila-recibido" style="display:none">
+                        <span>Efectivo recibido</span>
+                        <span id="ticket-recibido"></span>
+                    </div>
+                    <div class="ticket-fila ticket-cambio-resaltado" id="ticket-fila-cambio" style="display:none">
+                        <span>Cambio</span>
+                        <span id="ticket-cambio"></span>
+                    </div>
+                </div>
+
+                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+
+
+                <!-- AUTOFACTURACIÓN -->
+                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+                <div class="ticket-factura-seccion">
+                    <div class="ticket-factura-qr" id="ticket-qr"></div>
+                    <div class="ticket-factura-info">
+                        <p class="ticket-factura-titulo">¿Necesitas factura?</p>
+                        <p class="ticket-factura-url">Escanea el QR o visita:</p>
+                        <p class="ticket-factura-url-texto">dairyking.com/factura</p>
+                        <p class="ticket-factura-codigo-label">Código de verificación:</p>
+                        <p class="ticket-factura-codigo" id="ticket-codigo-factura">——</p>
+                    </div>
+                </div>
+
+                <!-- PIE DEL TICKET -->
+                <div class="ticket-pie">
+                    <p>IVA incluido en el precio</p>
+                    <p>¡Gracias por su preferencia!</p>
+                    <p>Conserve su ticket</p>
+                </div>
+
+            </div>
+
+            <!-- BOTONES FUERA DEL ÁREA IMPRIMIBLE -->
+            <div class="ticket-acciones">
+                <button class="btn-imprimir" id="btn-imprimir">🖨 Imprimir ticket</button>
+                <button class="btn-listo" id="btn-listo">Listo</button>
+            </div>
+
+        </div>
+    </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="../js/empleado.js"></script>
+</body>
+</html>

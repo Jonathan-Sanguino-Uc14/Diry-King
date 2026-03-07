@@ -1,0 +1,43 @@
+/* =====================================================
+   VARIABLES.CSS — Variables compartidas del sistema
+   =====================================================
+   Se carga ANTES que cualquier otro CSS en todas las páginas.
+   Define:
+     - Variables de color y tipografía compartidas
+     - Reset base
+     - Clases utilitarias usadas en los 3 módulos
+   ===================================================== */
+
+/* =====================================================
+   RESET
+   ===================================================== */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* =====================================================
+   CLASES UTILITARIAS
+   Reemplazan los style="display:none" que estaban
+   hardcodeados en el HTML.
+   ===================================================== */
+
+/* Ocultar elementos (equivalente a display:none) */
+.oculto { display: none !important; }
+
+/* Texto con color suave (variables definidas en cada CSS de módulo) */
+.col-suave { color: var(--texto-suave, #888); }
+
+/* Texto de tabla vacía */
+.tabla-vacia {
+    text-align: center;
+    color: var(--texto-suave, #888);
+    padding: 32px;
+}
+
+/* Texto "sin tamaños" en tabla de productos */
+.sin-tamanos {
+    font-size: 0.78rem;
+    color: var(--texto-suave, #888);
+}

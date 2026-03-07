@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autofacturación — Dairy King</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/factura.css">
+</head>
+<body>
+
+    <div class="factura-wrapper">
+
+        <!-- HEADER -->
+        <header class="factura-header">
+            <div class="factura-logo-area">
+                <img src="../assets/images/logo2.png" alt="Dairy King" class="factura-logo">
+                <div>
+                    <h1 class="factura-titulo">Autofacturación</h1>
+                    <p class="factura-subtitulo">HELADERÍA DAIRY KING</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- PASO 1: Buscar ticket -->
+        <section class="factura-card" id="seccion-buscar">
+            <h2 class="card-titulo">Encuentra tu compra</h2>
+            <p class="card-desc">Ingresa el número de ticket y el código que aparecen en tu comprobante de compra.</p>
+
+            <div class="campo-grupo">
+                <label for="input-ticket">Número de ticket</label>
+                <input type="text" id="input-ticket" placeholder="Ej: 0042" maxlength="10" autocomplete="off">
+            </div>
+            <div class="campo-grupo">
+                <label for="input-codigo">Código de verificación</label>
+                <input type="text" id="input-codigo" placeholder="Ej: A3BX7K" maxlength="6"
+                       autocomplete="off" style="text-transform:uppercase; letter-spacing: 0.2em;">
+            </div>
+
+            <p class="error-msg" id="error-busqueda" aria-live="polite"></p>
+
+            <button class="btn-primario" id="btn-buscar">
+                <span class="btn-texto">Buscar mi ticket</span>
+                <span class="spinner" aria-hidden="true"></span>
+            </button>
+        </section>
+
+        <!-- PASO 2: Resumen de compra + datos fiscales -->
+        <section class="factura-card oculto" id="seccion-datos">
+
+            <div class="resumen-venta" id="resumen-venta">
+                <!-- JS lo llena -->
+            </div>
+
+            <div class="separador-seccion"></div>
+
+            <h2 class="card-titulo">Datos fiscales</h2>
+            <p class="card-desc">Estos datos aparecerán en tu factura. Verifica que sean correctos.</p>
+
+            <div class="campo-grupo">
+                <label for="input-nombre">Nombre o Razón Social</label>
+                <input type="text" id="input-nombre" placeholder="Ej: Juan Pérez García" autocomplete="name">
+            </div>
+            <div class="campo-grupo">
+                <label for="input-rfc">RFC</label>
+                <input type="text" id="input-rfc" placeholder="Ej: PEGJ850101ABC"
+                       maxlength="13" autocomplete="off" style="text-transform:uppercase; letter-spacing:0.1em;">
+                <p class="campo-hint">Personas físicas: 13 caracteres · Personas morales: 12 caracteres</p>
+            </div>
+            <div class="campo-grupo">
+                <label for="select-cfdi">Uso de CFDI</label>
+                <select id="select-cfdi">
+                    <!-- JS lo llena desde USOS_CFDI en config.js -->
+                </select>
+            </div>
+
+            <p class="error-msg" id="error-datos" aria-live="polite"></p>
+
+            <button class="btn-primario" id="btn-generar">
+                <span class="btn-texto">Generar mi factura</span>
+                <span class="spinner" aria-hidden="true"></span>
+            </button>
+            <button class="btn-secundario" id="btn-volver">← Volver</button>
+
+        </section>
+
+        <!-- PASO 3: Éxito -->
+        <section class="factura-card oculto" id="seccion-exito">
+            <div class="exito-icono">✓</div>
+            <h2 class="card-titulo">¡Factura generada!</h2>
+            <p class="card-desc">Tu factura se ha descargado automáticamente.<br>Si no inició la descarga, usa el botón de abajo.</p>
+            <button class="btn-primario" id="btn-descargar-nuevo">⬇ Descargar de nuevo</button>
+            <p class="factura-aviso">Este ticket ya no podrá facturarse nuevamente.</p>
+        </section>
+
+        <!-- ESTADO: Ya facturado -->
+        <section class="factura-card oculto" id="seccion-ya-facturado">
+            <div class="estado-icono ya-facturado">✕</div>
+            <h2 class="card-titulo">Ticket ya facturado</h2>
+            <p class="card-desc">Este ticket ya fue utilizado para generar una factura anteriormente.<br>
+            Si tienes dudas, comunícate con nosotros.</p>
+            <p class="negocio-contacto">📞 998-123-4567</p>
+        </section>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/utils.js"></script>
+    <script src="../js/factura.js"></script>
+</body>
+</html>
