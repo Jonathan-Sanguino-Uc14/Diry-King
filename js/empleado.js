@@ -542,7 +542,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         /* QR + código de autofacturación */
-        const urlFactura = `${SITIO_URL}/pos/pages/factura.html?ticket=${generarNumeroTicket(venta.id)}`;
+const urlFactura = `${SITIO_URL}/pages/factura.html?ticket=${generarNumeroTicket(venta.id)}`;
         const qrEl       = document.getElementById("ticket-qr");
         const codigoEl   = document.getElementById("ticket-codigo-factura");
         if (qrEl) {
