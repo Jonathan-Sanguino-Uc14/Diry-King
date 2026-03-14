@@ -27,17 +27,43 @@
             </div>
             <button class="btn-abrir-turno" id="btn-abrir-turno">▶ Abrir turno</button>
             <button class="btn-cerrar-turno" id="btn-cerrar-turno" style="display:none">◼ Cerrar turno</button>
+            <div id="caja-indicator" style="display:none;background:#1a2e1a;border:1px solid #2d5a2d;border-radius:8px;padding:4px 12px;font-size:0.82rem;color:#4ade80;font-weight:600;letter-spacing:0.02em">
+                💵 Caja: <span id="caja-monto">$0.00</span>
+            </div>
             <button class="btn-cambiar-panel" id="btn-cambiar-panel" style="display:none">⚙ Panel admin</button>
             <span class="usuario-info"><span id="nombre-usuario"></span> · <span id="rol-usuario"></span></span>
             <button class="btn-salir" onclick="sessionStorage.removeItem('sesion'); window.location.href='index.html'">Salir</button>
         </div>
     </header>
 
+    <!-- MODAL: Fondo de caja al abrir turno -->
+    <div class="modal-overlay oculto" id="modal-abrir-turno">
+        <div class="modal-box modal-turno">
+            <h2 class="modal-turno-titulo">▶ Abrir turno</h2>
+            <p class="modal-turno-desc">Ingresa el monto inicial en caja (fondo de efectivo).</p>
+            <div style="margin: 16px 0;">
+                <label style="font-size:0.78rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Fondo inicial</label>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:1.1rem;font-weight:700">$</span>
+                    <input type="number" id="input-fondo-inicial" min="0" step="0.50" placeholder="0.00"
+                        style="flex:1;padding:12px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:1.1rem;font-weight:600;outline:none">
+                </div>
+                <p style="font-size:0.75rem;color:#888;margin-top:6px">Este monto es el efectivo con el que arranca la caja. Puede ser $0.</p>
+            </div>
+            <div class="modal-turno-acciones">
+                <button class="btn-confirmar-turno" id="btn-confirmar-abrir-turno">
+                    <span class="btn-texto">Abrir turno</span>
+                    <span class="spinner"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: Confirmar cierre de turno -->
     <div class="modal-overlay oculto" id="modal-cierre-turno">
-        <div class="modal-box modal-turno">
-            <h2 class="modal-turno-titulo">¿Cerrar turno?</h2>
-            <p class="modal-turno-desc">El turno quedará cerrado y no se podrán registrar más ventas hasta abrir uno nuevo.</p>
+        <div class="modal-box modal-turno" style="max-width:720px;width:95vw;max-height:90vh;overflow-y:auto">
+            <h2 class="modal-turno-titulo">◼ Corte de caja</h2>
+            <p class="modal-turno-desc">Revisa el resumen antes de cerrar. Se descargará el Excel del día automáticamente.</p>
             <div class="modal-turno-resumen" id="resumen-cierre"></div>
             <div class="modal-turno-acciones">
                 <button class="btn-confirmar-turno" id="btn-confirmar-cierre">

@@ -68,12 +68,24 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         /* Ventas del turno activo — si no hay turno, no hay ventas */
         if (turnoActivo) {
-            const { data: ventasData } = await db
-                .from("venta_items")
-                .select("*, venta:ventas(*)")
-                .eq("venta.fecha", turnoActivo.fecha_apertura)
-                .order("id", { ascending: false });
-            estado.ventas = (ventasData || []).filter(v => v.venta !== null);
+            /* Primero obtenemos los IDs de ventas del día del turno */
+            const { data: ventasDia } = await db
+                .from("ventas")
+                .select("id")
+                .eq("fecha", turnoActivo.fecha_apertura);
+
+            const idsVentas = (ventasDia || []).map(v => v.id);
+
+            if (idsVentas.length > 0) {
+                const { data: ventasData } = await db
+                    .from("venta_items")
+                    .select("*, venta:ventas(*)")
+                    .in("venta_id", idsVentas)
+                    .order("id", { ascending: false });
+                estado.ventas = (ventasData || []).filter(v => v.venta !== null);
+            } else {
+                estado.ventas = [];
+            }
         } else {
             estado.ventas = [];
         }
@@ -423,6 +435,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                     inputPrecio.value    = "";
                     estado.tamanosTemporal = estado.tamanosTemporal.filter(t => t.nombre !== nombre);
                 }
+                actualizarVisibilidadPrecio();
             });
 
             inputPrecio.addEventListener("input", function () {
@@ -488,9 +501,19 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         const categoriaId = document.getElementById("prod-categoria").value || null;
 
-        /* ── BUG CORREGIDO: precio viene de prod-precio, no de prod-stock ── */
         const inputPrecio = document.getElementById("prod-precio");
         const precioSinTamano = inputPrecio ? parseFloat(inputPrecio.value) || null : null;
+
+        /* ── VALIDACIÓN: debe tener precio o al menos un tamaño con precio ── */
+        if (tamanosFinal.length === 0 && !precioSinTamano) {
+            alert("El producto debe tener un precio, o al menos un tamaño con su precio.");
+            if (inputPrecio) inputPrecio.focus();
+            return;
+        }
+        if (tamanosFinal.some(t => !t.precio || t.precio <= 0)) {
+            alert("Todos los tamaños activados deben tener un precio mayor a $0.");
+            return;
+        }
 
         const datos = {
             nombre:       document.getElementById("prod-nombre").value.trim(),
@@ -763,6 +786,57 @@ document.addEventListener("DOMContentLoaded", async function () {
     document.getElementById("btn-imprimir-dueno").addEventListener("click", () => window.print());
 
     /* =====================================================
+       FILTRO DE FECHA EN DASHBOARD
+       ===================================================== */
+    let fechaFiltroActual = null; // null = usar turno activo
+
+    async function cargarVentasPorFecha(fecha) {
+        const { data: ventasDia } = await db
+            .from("ventas")
+            .select("id")
+            .eq("fecha", fecha);
+
+        const idsVentas = (ventasDia || []).map(v => v.id);
+
+        if (idsVentas.length > 0) {
+            const { data: ventasData } = await db
+                .from("venta_items")
+                .select("*, venta:ventas(*)")
+                .in("venta_id", idsVentas)
+                .order("id", { ascending: false });
+            estado.ventas = (ventasData || []).filter(v => v.venta !== null);
+        } else {
+            estado.ventas = [];
+        }
+    }
+
+    document.getElementById("filtro-fecha-dashboard").value = obtenerFechaHoy();
+
+    document.getElementById("btn-filtrar-fecha").addEventListener("click", async function () {
+        const fecha = document.getElementById("filtro-fecha-dashboard").value;
+        if (!fecha) { alert("Selecciona una fecha."); return; }
+        this.textContent = "Cargando...";
+        this.disabled = true;
+        fechaFiltroActual = fecha;
+        await cargarVentasPorFecha(fecha);
+        const panelTitulo = document.querySelector("#seccion-dashboard .panel-header h2");
+        if (panelTitulo) panelTitulo.textContent = `Ventas individuales — ${fecha}`;
+        renderizarDashboard();
+        this.textContent = "Ver ventas";
+        this.disabled = false;
+    });
+
+    document.getElementById("btn-filtrar-hoy").addEventListener("click", async function () {
+        const hoy = obtenerFechaHoy();
+        document.getElementById("filtro-fecha-dashboard").value = hoy;
+        fechaFiltroActual = null;
+        await cargarDatos(); // recarga con turno activo
+        const panelTitulo = document.querySelector("#seccion-dashboard .panel-header h2");
+        if (panelTitulo) panelTitulo.textContent = "Ventas individuales — hoy";
+        renderizarDashboard();
+    });
+
+    /* =====================================================
        EXPORTAR EXCEL
        ===================================================== */
     async function exportarExcel() {
@@ -857,9 +931,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     document.getElementById("btn-exportar-mes").addEventListener("click", async function () {
         const hoy    = new Date();
         const anio   = hoy.getFullYear();
-        const mes    = hoy.getMonth() + 1;
+        const mes    = hoy.getMonth() + 1;  // 1-12
         const desde  = `${anio}-${String(mes).padStart(2,"0")}-01`;
-        const hasta  = `${anio}-${String(mes+1).padStart(2,"0")}-01`;
+        /* Para el límite superior usamos el primer día del mes siguiente de forma segura */
+        const fechaHasta = new Date(anio, mes, 1); // mes en JS es 0-based, así mes=getMonth()+1 ya apunta al siguiente
+        const hasta  = `${fechaHasta.getFullYear()}-${String(fechaHasta.getMonth()+1).padStart(2,"0")}-01`;
 
         const { data: ventas } = await db.from("ventas")
             .select("*, items:venta_items(*)")

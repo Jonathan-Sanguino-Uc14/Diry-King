@@ -25,6 +25,10 @@
 
     const sesion = JSON.parse(sesionRaw);
 
+    /* Exponer la sesión globalmente para que empleado.js y dueño.js
+       puedan acceder a ella con window.sesionActual */
+    window.sesionActual = sesion;
+
     /*
         Leemos qué roles puede entrar a esta página.
         El atributo data-roles-permitidos está en el <body>

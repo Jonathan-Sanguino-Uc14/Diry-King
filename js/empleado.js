@@ -259,6 +259,10 @@ document.addEventListener("DOMContentLoaded", async function () {
        ===================================================== */
     const btnConfirmar = document.getElementById("btn-confirmar");
 
+    /* turnoActual se inicializa aquí para que renderizarOrden
+       pueda referenciarlo sin importar el orden de ejecución */
+    let turnoActual = null;
+
     function renderizarOrden() {
         const contenedor = document.getElementById("orden-items");
         contenedor.innerHTML = "";
@@ -375,6 +379,17 @@ document.addEventListener("DOMContentLoaded", async function () {
             ? "Falta " + formatearPrecio(Math.abs(cambio))
             : formatearPrecio(cambio);
         elCambio.className = "cambio-valor" + (cambio < 0 ? " negativo" : "");
+
+        /* Advertir si la caja no tiene suficiente para el cambio */
+        const cajaMontoEl = document.getElementById("caja-monto");
+        if (cambio > 0 && turnoActual && cajaMontoEl) {
+            const cajaTexto  = cajaMontoEl.textContent.replace(/[$,]/g, "");
+            const cajaActual = parseFloat(cajaTexto) || 0;
+            if (cambio > cajaActual) {
+                elCambio.textContent += " ⚠️";
+                elCambio.className   = "cambio-valor negativo";
+            }
+        }
     }
 
     inputRecibido.addEventListener("input", calcularCambio);
@@ -410,13 +425,41 @@ document.addEventListener("DOMContentLoaded", async function () {
         const total    = obtenerTotal();
         const recibido = parseFloat(inputRecibido.value) || 0;
 
-        if (estado.metodoPago === "efectivo" && recibido > 0 && recibido < total) {
+        /* ── Si es efectivo y no ingresaron monto → asumir pago exacto ── */
+        const montoRecibido = (estado.metodoPago === "efectivo" && recibido === 0)
+            ? total   // pago exacto
+            : recibido;
+
+        if (estado.metodoPago === "efectivo" && montoRecibido < total) {
             alert("El monto recibido no cubre el total de la venta.");
             inputRecibido.focus();
             return;
         }
 
-        const cambio          = (estado.metodoPago === "efectivo" && recibido > 0) ? recibido - total : 0;
+        const cambio = estado.metodoPago === "efectivo" ? montoRecibido - total : 0;
+
+        /* ── Validar que la caja tenga suficiente para dar cambio ── */
+        if (estado.metodoPago === "efectivo" && cambio > 0) {
+            const { data: ventasDia } = await db.from("ventas")
+                .select("total, metodo_pago")
+                .eq("fecha", turnoActual.fecha_apertura);
+
+            const efectivoEnCaja = (turnoActual?.fondo_inicial || 0) +
+                (ventasDia || [])
+                    .filter(v => v.metodo_pago === "efectivo")
+                    .reduce((s, v) => s + (v.total || 0), 0);
+
+            if (cambio > efectivoEnCaja) {
+                alert(
+                    `No hay suficiente efectivo en caja para dar el cambio.\n\n` +
+                    `Cambio requerido: ${formatearPrecio(cambio)}\n` +
+                    `Efectivo en caja: ${formatearPrecio(efectivoEnCaja)}\n\n` +
+                    `Pide al cliente un billete más pequeño o cobra con tarjeta.`
+                );
+                inputRecibido.focus();
+                return;
+            }
+        }
         const comentarioOrden = document.getElementById("comentario-orden").value.trim();
 
         this.disabled    = true;
@@ -431,7 +474,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                 metodo_pago:      estado.metodoPago,
                 tipo_tarjeta:     estado.metodoPago === "tarjeta" ? estado.tipoTarjeta : null,
                 total,
-                recibido,
+                recibido:         montoRecibido,
                 cambio,
                 comentario_orden: comentarioOrden || null,
                 codigo_factura:   generarCodigoFactura(),
@@ -461,7 +504,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         const { error: errorItems } = await db.from("venta_items").insert(items);
 
         if (errorItems) {
-            alert("Error al guardar los productos de la venta.");
+            console.error("Error venta_items:", errorItems);
+            /* Limpiar la venta huérfana que se creó en el paso 1 */
+            await db.from("ventas").delete().eq("id", ventaNueva.id);
+            alert("Error al guardar los productos de la venta.\n\nDetalle: " + (errorItems.message || errorItems.code || JSON.stringify(errorItems)) + "\n\nSi el problema persiste, revisa las políticas RLS de la tabla venta_items en Supabase.");
             this.disabled    = false;
             this.textContent = "Confirmar venta";
             return;
@@ -484,6 +530,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         await cargarDatos();
         renderizarProductos();
+        /* Actualizar indicador de caja si fue efectivo */
+        if (estado.metodoPago === "efectivo") calcularEfectivoTurno();
     });
 
     /* =====================================================
@@ -533,7 +581,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             textoMetodoPago(venta.metodo_pago, venta.tipo_tarjeta);
 
         /* Efectivo y cambio */
-        const mostrarEfectivo = venta.metodo_pago === "efectivo" && venta.recibido > 0;
+        const mostrarEfectivo = venta.metodo_pago === "efectivo";
         document.getElementById("ticket-fila-recibido").style.display = mostrarEfectivo ? "flex" : "none";
         document.getElementById("ticket-fila-cambio").style.display   = mostrarEfectivo ? "flex" : "none";
         if (mostrarEfectivo) {
@@ -595,8 +643,6 @@ document.addEventListener("DOMContentLoaded", async function () {
        SISTEMA DE TURNOS
        ===================================================== */
 
-    let turnoActual = null;
-
     async function verificarTurnoAbierto() {
         const { data } = await db.from("turnos")
             .select("*")
@@ -621,6 +667,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const badge     = document.getElementById("turno-badge");
         const label     = document.getElementById("turno-label");
         const btnConf   = document.getElementById("btn-confirmar");
+        const cajaEl    = document.getElementById("caja-indicator");
 
         if (turnoActual) {
             btnAbrir.style.display  = "none";
@@ -628,66 +675,175 @@ document.addEventListener("DOMContentLoaded", async function () {
             badge.classList.add("activo");
             label.textContent = `Turno desde ${turnoActual.hora_apertura.slice(0,5)}`;
             btnConf.disabled  = false;
+            if (cajaEl) cajaEl.style.display = "flex";
+            /* Calcular efectivo actual del turno */
+            calcularEfectivoTurno();
         } else {
             btnAbrir.style.display  = "inline-flex";
             btnCerrar.style.display = "none";
             badge.classList.remove("activo");
             label.textContent = "Sin turno";
             btnConf.disabled  = true;
+            if (cajaEl) cajaEl.style.display = "none";
         }
     }
 
-    /* Abrir turno */
-    document.getElementById("btn-abrir-turno").addEventListener("click", async function () {
-        this.disabled = true;
-        const sesion  = window.sesionActual;
+    async function calcularEfectivoTurno() {
+        if (!turnoActual) return;
+        const { data: ventas } = await db.from("ventas")
+            .select("total, metodo_pago")
+            .eq("fecha", turnoActual.fecha_apertura);
+        const efectivo = (ventas || [])
+            .filter(v => v.metodo_pago === "efectivo")
+            .reduce((s, v) => s + (v.total || 0), 0);
+        actualizarIndicadorCaja(efectivo);
+    }
+
+    /* ── Indicador de caja en tiempo real ── */
+    function actualizarIndicadorCaja(ventasEfectivo) {
+        const fondo    = turnoActual?.fondo_inicial || 0;
+        const totalCaja = fondo + ventasEfectivo;
+        const el = document.getElementById("caja-monto");
+        if (el) el.textContent = formatearPrecio(totalCaja);
+    }
+
+    /* Abrir turno → mostrar modal de fondo */
+    document.getElementById("btn-abrir-turno").addEventListener("click", function () {
+        document.getElementById("input-fondo-inicial").value = "";
+        document.getElementById("modal-abrir-turno").classList.remove("oculto");
+        setTimeout(() => document.getElementById("input-fondo-inicial").focus(), 100);
+    });
+
+    /* Confirmar apertura de turno con fondo */
+    document.getElementById("btn-confirmar-abrir-turno").addEventListener("click", async function () {
+        const fondo  = parseFloat(document.getElementById("input-fondo-inicial").value) || 0;
+        const sesion = window.sesionActual;
+
+        this.classList.add("cargando");
+
         const { data, error } = await db.from("turnos").insert({
             fecha_apertura: obtenerFechaHoy(),
             hora_apertura:  obtenerHoraAhora() + ":00",
             usuario_id:     sesion?.id || null,
             usuario_nombre: sesion?.nombre || "Desconocido",
             estado:         "abierto",
+            fondo_inicial:  fondo,
         }).select().single();
+
+        this.classList.remove("cargando");
 
         if (error) {
             alert("Error al abrir turno. Intenta de nuevo.");
-            this.disabled = false;
             return;
         }
+
         turnoActual = data;
+        document.getElementById("modal-abrir-turno").classList.add("oculto");
         actualizarUITurno();
+        actualizarIndicadorCaja(0);
     });
 
-    /* Botón cerrar turno → mostrar modal con resumen */
+    /* Botón cerrar turno → mostrar corte de caja completo */
     document.getElementById("btn-cerrar-turno").addEventListener("click", async function () {
-        /* Calcular resumen del turno */
-        const { data: ventas } = await db.from("ventas")
-            .select("total, metodo_pago")
-            .eq("fecha", turnoActual.fecha_apertura);
 
-        const totalVentas  = ventas?.length || 0;
-        const totalIngresos = ventas?.reduce((s, v) => s + (v.total || 0), 0) || 0;
-        const efectivo     = ventas?.filter(v => v.metodo_pago === "efectivo").reduce((s, v) => s + v.total, 0) || 0;
-        const tarjeta      = ventas?.filter(v => v.metodo_pago === "tarjeta").reduce((s, v) => s + v.total, 0) || 0;
+        /* ── Obtener todas las ventas del turno con sus items ── */
+        const { data: ventas } = await db.from("ventas")
+            .select("*, items:venta_items(*)")
+            .eq("fecha", turnoActual.fecha_apertura)
+            .order("id");
+
+        /* ── Variables del corte de caja ── */
+        const fondoInicial        = turnoActual?.fondo_inicial || 0;
+        const ventasEfectivo      = (ventas || []).filter(v => v.metodo_pago === "efectivo");
+        const ventasTarjeta       = (ventas || []).filter(v => v.metodo_pago === "tarjeta");
+        const totalVentasEfectivo = ventasEfectivo.reduce((s, v) => s + (v.total || 0), 0);
+        const totalVentasTarjeta  = ventasTarjeta.reduce((s, v) => s + (v.total || 0), 0);
+        const totalCambioEntregado = ventasEfectivo.reduce((s, v) => s + (v.cambio || 0), 0);
+        const totalVentas         = (ventas || []).length;
+        const dineroFinalEnCaja   = fondoInicial + totalVentasEfectivo - totalCambioEntregado;
+
+        /* ── Construir filas de cada venta ── */
+        const filasVentas = (ventas || []).map(function (v, idx) {
+            const productos = (v.items || [])
+                .map(i => `${i.nombre_producto}${i.tamano ? " (" + i.tamano + ")" : ""} x${i.cantidad}`)
+                .join(", ");
+            const esEfectivo = v.metodo_pago === "efectivo";
+            return `
+                <tr>
+                    <td style="color:#888;font-size:0.8rem">${String(idx + 1).padStart(2,"0")}</td>
+                    <td style="font-size:0.8rem">${v.hora?.slice(0,5) || "—"}</td>
+                    <td style="font-size:0.78rem;max-width:160px">${productos}</td>
+                    <td style="font-weight:600">${formatearPrecio(v.total)}</td>
+                    <td style="color:#888;font-size:0.82rem">${esEfectivo ? formatearPrecio(v.recibido || 0) : "—"}</td>
+                    <td style="${esEfectivo ? "color:#dc2626;font-weight:600" : "color:#888"}">${esEfectivo ? formatearPrecio(v.cambio || 0) : "—"}</td>
+                    <td><span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:${esEfectivo ? "#dcfce7" : "#dbeafe"};color:${esEfectivo ? "#16a34a" : "#1d4ed8"}">${esEfectivo ? "💵 Efectivo" : "💳 Tarjeta"}</span></td>
+                </tr>
+            `;
+        }).join("");
 
         document.getElementById("resumen-cierre").innerHTML = `
-            <div class="resumen-turno-grid">
-                <div class="resumen-turno-item">
-                    <span class="rt-label">Ventas del día</span>
-                    <span class="rt-valor">${totalVentas}</span>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif">
+
+                <!-- ENCABEZADO CORTE -->
+                <div style="text-align:center;padding:12px 0 16px;border-bottom:2px dashed #e5e7eb;margin-bottom:16px">
+                    <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.1em">Corte de caja</div>
+                    <div style="font-size:0.85rem;font-weight:600;color:#1a1a1a;margin-top:2px">
+                        ${turnoActual.fecha_apertura} · ${turnoActual.hora_apertura.slice(0,5)} – ${obtenerHoraAhora()}
+                    </div>
                 </div>
-                <div class="resumen-turno-item">
-                    <span class="rt-label">Total ingresado</span>
-                    <span class="rt-valor">${formatearPrecio(totalIngresos)}</span>
+
+                <!-- TABLA DE VENTAS -->
+                <div style="margin-bottom:16px">
+                    <div style="font-size:0.72rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Registro de ventas</div>
+                    <div style="overflow-x:auto;border:1px solid #e5e7eb;border-radius:8px">
+                        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+                            <thead>
+                                <tr style="background:#f9fafb;font-size:0.72rem;color:#888;text-transform:uppercase">
+                                    <th style="padding:8px 10px;text-align:left">#</th>
+                                    <th style="padding:8px 10px;text-align:left">Hora</th>
+                                    <th style="padding:8px 10px;text-align:left">Productos</th>
+                                    <th style="padding:8px 10px;text-align:left">Total</th>
+                                    <th style="padding:8px 10px;text-align:left">Recibido</th>
+                                    <th style="padding:8px 10px;text-align:left">Cambio</th>
+                                    <th style="padding:8px 10px;text-align:left">Método</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${filasVentas || `<tr><td colspan="7" style="text-align:center;padding:16px;color:#888">Sin ventas en este turno</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div class="resumen-turno-item">
-                    <span class="rt-label">Efectivo</span>
-                    <span class="rt-valor">${formatearPrecio(efectivo)}</span>
+
+                <!-- RESUMEN NUMÉRICO -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+                    <div style="background:#f9fafb;border-radius:8px;padding:12px">
+                        <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em">Fondo inicial</div>
+                        <div style="font-size:1rem;font-weight:700;color:#1a1a1a;margin-top:4px">${formatearPrecio(fondoInicial)}</div>
+                    </div>
+                    <div style="background:#f9fafb;border-radius:8px;padding:12px">
+                        <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em">Total ventas (${totalVentas})</div>
+                        <div style="font-size:1rem;font-weight:700;color:#1a1a1a;margin-top:4px">${formatearPrecio(totalVentasEfectivo + totalVentasTarjeta)}</div>
+                    </div>
+                    <div style="background:#fef2f2;border-radius:8px;padding:12px">
+                        <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em">Cambio entregado</div>
+                        <div style="font-size:1rem;font-weight:700;color:#dc2626;margin-top:4px">− ${formatearPrecio(totalCambioEntregado)}</div>
+                    </div>
+                    <div style="background:#f0fdf4;border-radius:8px;padding:12px">
+                        <div style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.06em">Ventas tarjeta</div>
+                        <div style="font-size:1rem;font-weight:700;color:#1d4ed8;margin-top:4px">${formatearPrecio(totalVentasTarjeta)}</div>
+                    </div>
                 </div>
-                <div class="resumen-turno-item">
-                    <span class="rt-label">Tarjeta</span>
-                    <span class="rt-valor">${formatearPrecio(tarjeta)}</span>
+
+                <!-- TOTAL FINAL -->
+                <div style="background:#1e7840;border-radius:10px;padding:16px;display:flex;justify-content:space-between;align-items:center">
+                    <div>
+                        <div style="font-size:0.7rem;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.08em">Dinero final en caja</div>
+                        <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);margin-top:2px">Fondo + efectivo ventas − cambios</div>
+                    </div>
+                    <div style="font-size:1.6rem;font-weight:800;color:#fff">${formatearPrecio(dineroFinalEnCaja)}</div>
                 </div>
+
             </div>
         `;
 

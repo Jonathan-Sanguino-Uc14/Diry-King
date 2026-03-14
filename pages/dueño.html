@@ -68,7 +68,10 @@
             <div class="panel">
                 <div class="panel-header">
                     <h2>Ventas individuales — hoy</h2>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                        <input type="date" id="filtro-fecha-dashboard" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.85rem">
+                        <button class="btn-primario" id="btn-filtrar-fecha" style="padding:6px 14px;font-size:0.85rem">Ver ventas</button>
+                        <button class="btn-secundario" id="btn-filtrar-hoy" style="padding:6px 14px;font-size:0.85rem">Hoy</button>
                         <button class="btn-secundario" id="btn-exportar-excel">⬇ Excel hoy</button>
                         <button class="btn-secundario" id="btn-exportar-mes">⬇ Excel del mes</button>
                         <button class="btn-secundario" id="btn-registrar-venta">+ Registrar venta</button>
@@ -157,7 +160,7 @@
     </main>
 
     <!-- MODAL: Agregar/Editar Producto -->
-    <div class="modal-overlay" id="modal-producto">
+    <div class="modal-overlay oculto" id="modal-producto">
         <div class="modal modal-grande">
             <div class="modal-header">
                 <h3 id="modal-producto-titulo">Agregar producto</h3>
@@ -211,7 +214,7 @@
     </div>
 
     <!-- MODAL: Registrar Venta -->
-    <div class="modal-overlay" id="modal-venta">
+    <div class="modal-overlay oculto" id="modal-venta">
         <div class="modal">
             <div class="modal-header">
                 <h3>Registrar venta</h3>
@@ -239,7 +242,7 @@
     </div>
 
     <!-- MODAL: Gestionar Categorías -->
-    <div class="modal-overlay" id="modal-categorias">
+    <div class="modal-overlay oculto" id="modal-categorias">
         <div class="modal">
             <div class="modal-header">
                 <h3>Gestionar categorías</h3>
@@ -259,7 +262,7 @@
     </div>
 
     <!-- MODAL: Agregar Entrega -->
-    <div class="modal-overlay" id="modal-entrega">
+    <div class="modal-overlay oculto" id="modal-entrega">
         <div class="modal">
             <div class="modal-header">
                 <h3>Agregar entrega</h3>
@@ -283,7 +286,7 @@
     </div>
 
     <!-- MODAL: Ver Ticket de venta -->
-    <div class="modal-overlay" id="modal-ticket-dueno">
+    <div class="modal-overlay oculto" id="modal-ticket-dueno">
         <div class="modal-ticket-wrapper-dueno">
             <div class="modal-ticket-dueno" id="ticket-dueno-imprimible">
 
