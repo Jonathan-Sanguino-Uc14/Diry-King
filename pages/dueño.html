@@ -27,7 +27,7 @@
                 <span class="nav-icon">◫</span><span>Calendario</span>
             </button>
         </nav>
-        <button class="btn-cerrar-sesion" onclick="sessionStorage.removeItem('sesion'); window.location.href='../pages/index.html'">
+        <button class="btn-cerrar-sesion" onclick="sessionStorage.removeItem('sesion'); window.location.href='index.html'">
             <span>⎋</span> Salir
         </button>
     </aside>
@@ -68,7 +68,18 @@
             <div class="panel">
                 <div class="panel-header">
                     <h2>Ventas individuales — hoy</h2>
-                    <div style="display:flex;gap:8px"><button class="btn-secundario" id="btn-exportar-excel">⬇ Excel</button><button class="btn-secundario" id="btn-registrar-venta">+ Registrar venta</button></div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn-secundario" id="btn-exportar-excel">⬇ Excel hoy</button>
+                        <button class="btn-secundario" id="btn-exportar-mes">⬇ Excel del mes</button>
+                        <button class="btn-secundario" id="btn-registrar-venta">+ Registrar venta</button>
+                    </div>
+                    <div style="margin-top:10px">
+                        <label style="font-size:0.78rem;color:#888;display:block;margin-bottom:4px">Descargar día específico:</label>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <input type="date" id="input-fecha-excel" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.85rem">
+                            <button class="btn-secundario" id="btn-exportar-dia">⬇ Descargar</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="tabla-wrapper">
                     <table class="tabla">

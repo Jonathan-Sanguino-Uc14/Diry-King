@@ -21,11 +21,48 @@
         </div>
         <div class="header-right">
             <div class="header-hora" id="header-hora"></div>
+            <div class="turno-badge" id="turno-badge">
+                <span class="turno-dot"></span>
+                <span id="turno-label">Sin turno</span>
+            </div>
+            <button class="btn-abrir-turno" id="btn-abrir-turno">▶ Abrir turno</button>
+            <button class="btn-cerrar-turno" id="btn-cerrar-turno" style="display:none">◼ Cerrar turno</button>
             <button class="btn-cambiar-panel" id="btn-cambiar-panel" style="display:none">⚙ Panel admin</button>
             <span class="usuario-info"><span id="nombre-usuario"></span> · <span id="rol-usuario"></span></span>
-            <button class="btn-salir" onclick="sessionStorage.removeItem('sesion'); window.location.href='../pages/index.html'">Salir</button>
+            <button class="btn-salir" onclick="sessionStorage.removeItem('sesion'); window.location.href='index.html'">Salir</button>
         </div>
     </header>
+
+    <!-- MODAL: Confirmar cierre de turno -->
+    <div class="modal-overlay oculto" id="modal-cierre-turno">
+        <div class="modal-box modal-turno">
+            <h2 class="modal-turno-titulo">¿Cerrar turno?</h2>
+            <p class="modal-turno-desc">El turno quedará cerrado y no se podrán registrar más ventas hasta abrir uno nuevo.</p>
+            <div class="modal-turno-resumen" id="resumen-cierre"></div>
+            <div class="modal-turno-acciones">
+                <button class="btn-confirmar-turno" id="btn-confirmar-cierre">
+                    <span class="btn-texto">Cerrar turno</span>
+                    <span class="spinner"></span>
+                </button>
+                <button class="btn-cancelar-turno" id="btn-cancelar-cierre">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Cierre de mes -->
+    <div class="modal-overlay oculto" id="modal-cierre-mes">
+        <div class="modal-box modal-turno">
+            <h2 class="modal-turno-titulo">📅 Cierre de mes</h2>
+            <p class="modal-turno-desc">Hay ventas del mes anterior guardadas. Descarga el reporte mensual antes de limpiar la base de datos.</p>
+            <div class="modal-turno-acciones">
+                <button class="btn-confirmar-turno" id="btn-descargar-mes">
+                    <span class="btn-texto">⬇ Descargar Excel mensual y limpiar</span>
+                    <span class="spinner"></span>
+                </button>
+                <button class="btn-cancelar-turno" id="btn-saltar-mes">Recordármelo después</button>
+            </div>
+        </div>
+    </div>
 
     <div class="layout">
 
@@ -125,7 +162,7 @@
         antes de agregar al carrito. También tiene campo de comentario por producto.
         Si el producto NO tiene tamaños, va directo al carrito sin este modal.
     -->
-    <div class="modal-overlay" id="modal-tamano">
+    <div class="modal-overlay oculto" id="modal-tamano">
         <div class="modal-tamano-card">
             <div class="modal-tamano-header">
                 <div>
@@ -164,7 +201,7 @@
         Si el producto NO tiene tamaños, mostramos este modal más simple
         para que igual puedan agregar un comentario al producto.
     -->
-    <div class="modal-overlay" id="modal-comentario-simple">
+    <div class="modal-overlay oculto" id="modal-comentario-simple">
         <div class="modal-tamano-card">
             <div class="modal-tamano-header">
                 <div>
@@ -194,7 +231,7 @@
     </div>
 
     <!-- MODAL: Ticket de confirmación -->
-    <div class="modal-overlay" id="modal-confirmacion">
+    <div class="modal-overlay oculto" id="modal-confirmacion">
         <div class="modal-ticket-wrapper">
 
             <!-- Ticket imprimible -->
@@ -318,6 +355,7 @@
     <script src="../js/config.js"></script>
     <script src="../js/utils.js"></script>
     <script src="../js/auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="../js/empleado.js"></script>
 </body>

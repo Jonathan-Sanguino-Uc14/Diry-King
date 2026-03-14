@@ -35,7 +35,24 @@ document.addEventListener("DOMContentLoaded", async function () {
     /* =====================================================
        DATOS DESDE SUPABASE
        ===================================================== */
+    /* Turno activo del día */
+    let turnoActivo = null;
+
+    async function obtenerTurnoActivo() {
+        const { data } = await db.from("turnos")
+            .select("*")
+            .eq("estado", "abierto")
+            .order("fecha_apertura", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        turnoActivo = data;
+        return data;
+    }
+
     async function cargarDatos() {
+        /* Obtener turno activo */
+        await obtenerTurnoActivo();
+
         /* Categorías, productos y entregas en paralelo */
         const [resCats, resProd, resEntregas] = await Promise.all([
             db.from("categorias").select("*").order("nombre"),
@@ -49,15 +66,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         estado.productos  = resProd.data    || [];
         estado.entregas   = resEntregas.data || [];
 
-        /* Ventas del día: items con su venta relacionada */
-        const { data: ventasData } = await db
-            .from("venta_items")
-            .select("*, venta:ventas(*)")
-            .eq("venta.fecha", obtenerFechaHoy())
-            .order("id", { ascending: false });
-
-        /* Filtramos items cuya venta no es de hoy */
-        estado.ventas = (ventasData || []).filter(v => v.venta !== null);
+        /* Ventas del turno activo — si no hay turno, no hay ventas */
+        if (turnoActivo) {
+            const { data: ventasData } = await db
+                .from("venta_items")
+                .select("*, venta:ventas(*)")
+                .eq("venta.fecha", turnoActivo.fecha_apertura)
+                .order("id", { ascending: false });
+            estado.ventas = (ventasData || []).filter(v => v.venta !== null);
+        } else {
+            estado.ventas = [];
+        }
     }
 
     /* =====================================================
@@ -91,6 +110,14 @@ document.addEventListener("DOMContentLoaded", async function () {
        ===================================================== */
     function renderizarDashboard() {
         const ventas = estado.ventas;
+
+        /* Subtítulo según estado del turno */
+        const subEl = document.getElementById("subtitulo-seccion");
+        if (subEl) {
+            subEl.textContent = turnoActivo
+                ? `Turno abierto desde ${turnoActivo.hora_apertura.slice(0,5)} · ${turnoActivo.fecha_apertura}`
+                : "Sin turno activo — las ventas aparecerán cuando se abra un turno";
+        }
 
         /* KPIs */
         const totalDia = ventas.reduce((s, v) => s + v.precio * v.cantidad, 0);
@@ -825,6 +852,108 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     document.getElementById("btn-exportar-excel").addEventListener("click", exportarExcel);
+
+    /* ── Excel del mes completo ── */
+    document.getElementById("btn-exportar-mes").addEventListener("click", async function () {
+        const hoy    = new Date();
+        const anio   = hoy.getFullYear();
+        const mes    = hoy.getMonth() + 1;
+        const desde  = `${anio}-${String(mes).padStart(2,"0")}-01`;
+        const hasta  = `${anio}-${String(mes+1).padStart(2,"0")}-01`;
+
+        const { data: ventas } = await db.from("ventas")
+            .select("*, items:venta_items(*)")
+            .gte("fecha", desde)
+            .lt("fecha", hasta)
+            .order("fecha");
+
+        if (!ventas || ventas.length === 0) {
+            alert("No hay ventas este mes.");
+            return;
+        }
+
+        const meses     = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+        const nombreMes = meses[mes - 1];
+        const wb        = XLSX.utils.book_new();
+
+        /* Hoja global del mes */
+        const rowsTotal = ventas.map(v => {
+            const { subtotal, iva } = calcularIVA(v.total);
+            return {
+                "Ticket":       generarNumeroTicket(v.id),
+                "Fecha":        v.fecha,
+                "Hora":         v.hora ? v.hora.slice(0,5) : "",
+                "Productos":    (v.items||[]).map(i => `${i.nombre_producto}${i.tamano?" ("+i.tamano+")":""} x${i.cantidad}`).join(", "),
+                "Subtotal":     subtotal,
+                "IVA":          iva,
+                "Total":        v.total,
+                "Método pago":  textoMetodoPago(v.metodo_pago, v.tipo_tarjeta),
+                "Facturado":    v.facturado ? "Sí" : "No",
+            };
+        });
+        const wsTotal = XLSX.utils.json_to_sheet(rowsTotal);
+        wsTotal["!cols"] = [{wch:8},{wch:12},{wch:8},{wch:50},{wch:12},{wch:10},{wch:12},{wch:16},{wch:10}];
+        XLSX.utils.book_append_sheet(wb, wsTotal, `${nombreMes} ${anio}`);
+
+        /* Una hoja por día */
+        const porDia = {};
+        ventas.forEach(v => { if (!porDia[v.fecha]) porDia[v.fecha] = []; porDia[v.fecha].push(v); });
+        Object.keys(porDia).sort().forEach(fecha => {
+            const rows = porDia[fecha].map(v => {
+                const { subtotal, iva } = calcularIVA(v.total);
+                return {
+                    "Ticket":      generarNumeroTicket(v.id),
+                    "Hora":        v.hora ? v.hora.slice(0,5) : "",
+                    "Productos":   (v.items||[]).map(i => `${i.nombre_producto}${i.tamano?" ("+i.tamano+")":""} x${i.cantidad}`).join(", "),
+                    "Subtotal":    subtotal,
+                    "IVA":         iva,
+                    "Total":       v.total,
+                    "Método pago": textoMetodoPago(v.metodo_pago, v.tipo_tarjeta),
+                    "Facturado":   v.facturado ? "Sí" : "No",
+                };
+            });
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws["!cols"] = [{wch:8},{wch:8},{wch:50},{wch:12},{wch:10},{wch:12},{wch:16},{wch:10}];
+            XLSX.utils.book_append_sheet(wb, ws, fecha.slice(5));
+        });
+
+        XLSX.writeFile(wb, `ventas_${anio}-${String(mes).padStart(2,"0")}.xlsx`);
+    });
+
+    /* ── Excel de un día específico ── */
+    document.getElementById("btn-exportar-dia").addEventListener("click", async function () {
+        const fecha = document.getElementById("input-fecha-excel").value;
+        if (!fecha) { alert("Selecciona una fecha."); return; }
+
+        const { data: ventas } = await db.from("ventas")
+            .select("*, items:venta_items(*)")
+            .eq("fecha", fecha)
+            .order("id");
+
+        if (!ventas || ventas.length === 0) {
+            alert(`No hay ventas para el ${fecha}.`);
+            return;
+        }
+
+        const wb   = XLSX.utils.book_new();
+        const rows = ventas.map(v => {
+            const { subtotal, iva } = calcularIVA(v.total);
+            return {
+                "Ticket":      generarNumeroTicket(v.id),
+                "Hora":        v.hora ? v.hora.slice(0,5) : "",
+                "Productos":   (v.items||[]).map(i => `${i.nombre_producto}${i.tamano?" ("+i.tamano+")":""} x${i.cantidad}`).join(", "),
+                "Subtotal":    subtotal,
+                "IVA":         iva,
+                "Total":       v.total,
+                "Método pago": textoMetodoPago(v.metodo_pago, v.tipo_tarjeta),
+                "Facturado":   v.facturado ? "Sí" : "No",
+            };
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws["!cols"] = [{wch:8},{wch:8},{wch:50},{wch:12},{wch:10},{wch:12},{wch:16},{wch:10}];
+        XLSX.utils.book_append_sheet(wb, ws, fecha.slice(5));
+        XLSX.writeFile(wb, `ventas_${fecha}.xlsx`);
+    });
 
     /* =====================================================
        MODALES — inicializar cierre

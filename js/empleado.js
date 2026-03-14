@@ -270,11 +270,11 @@ document.addEventListener("DOMContentLoaded", async function () {
                     <p>Agrega productos desde el catálogo</p>
                 </div>`;
             actualizarTotales(0);
-            btnConfirmar.disabled = true;
+            /* btnConfirmar.disabled se controla por el turno */
             return;
         }
 
-        btnConfirmar.disabled = false;
+        btnConfirmar.disabled = !turnoActual;  /* solo habilitar si hay turno */
         let total = 0;
 
         estado.carrito.forEach(function (item) {
@@ -542,7 +542,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
 
         /* QR + código de autofacturación */
-const urlFactura = `${SITIO_URL}/pages/factura.html?ticket=${generarNumeroTicket(venta.id)}`;
+        const urlFactura = `${SITIO_URL}/pos/pages/factura.html?ticket=${generarNumeroTicket(venta.id)}`;
         const qrEl       = document.getElementById("ticket-qr");
         const codigoEl   = document.getElementById("ticket-codigo-factura");
         if (qrEl) {
@@ -590,11 +590,277 @@ const urlFactura = `${SITIO_URL}/pages/factura.html?ticket=${generarNumeroTicket
        ===================================================== */
     inicializarCierreModales(["modal-confirmacion"]);
 
+
+    /* =====================================================
+       SISTEMA DE TURNOS
+       ===================================================== */
+
+    let turnoActual = null;
+
+    async function verificarTurnoAbierto() {
+        const { data } = await db.from("turnos")
+            .select("*")
+            .eq("estado", "abierto")
+            .order("fecha_apertura", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        return data;
+    }
+
+    async function inicializarTurno() {
+        turnoActual = await verificarTurnoAbierto();
+        actualizarUITurno();
+
+        /* Verificar cierre de mes al cargar */
+        /* verificarCierreMes solo corre en panel del dueño */
+    }
+
+    function actualizarUITurno() {
+        const btnAbrir  = document.getElementById("btn-abrir-turno");
+        const btnCerrar = document.getElementById("btn-cerrar-turno");
+        const badge     = document.getElementById("turno-badge");
+        const label     = document.getElementById("turno-label");
+        const btnConf   = document.getElementById("btn-confirmar");
+
+        if (turnoActual) {
+            btnAbrir.style.display  = "none";
+            btnCerrar.style.display = "inline-flex";
+            badge.classList.add("activo");
+            label.textContent = `Turno desde ${turnoActual.hora_apertura.slice(0,5)}`;
+            btnConf.disabled  = false;
+        } else {
+            btnAbrir.style.display  = "inline-flex";
+            btnCerrar.style.display = "none";
+            badge.classList.remove("activo");
+            label.textContent = "Sin turno";
+            btnConf.disabled  = true;
+        }
+    }
+
+    /* Abrir turno */
+    document.getElementById("btn-abrir-turno").addEventListener("click", async function () {
+        this.disabled = true;
+        const sesion  = window.sesionActual;
+        const { data, error } = await db.from("turnos").insert({
+            fecha_apertura: obtenerFechaHoy(),
+            hora_apertura:  obtenerHoraAhora() + ":00",
+            usuario_id:     sesion?.id || null,
+            usuario_nombre: sesion?.nombre || "Desconocido",
+            estado:         "abierto",
+        }).select().single();
+
+        if (error) {
+            alert("Error al abrir turno. Intenta de nuevo.");
+            this.disabled = false;
+            return;
+        }
+        turnoActual = data;
+        actualizarUITurno();
+    });
+
+    /* Botón cerrar turno → mostrar modal con resumen */
+    document.getElementById("btn-cerrar-turno").addEventListener("click", async function () {
+        /* Calcular resumen del turno */
+        const { data: ventas } = await db.from("ventas")
+            .select("total, metodo_pago")
+            .eq("fecha", turnoActual.fecha_apertura);
+
+        const totalVentas  = ventas?.length || 0;
+        const totalIngresos = ventas?.reduce((s, v) => s + (v.total || 0), 0) || 0;
+        const efectivo     = ventas?.filter(v => v.metodo_pago === "efectivo").reduce((s, v) => s + v.total, 0) || 0;
+        const tarjeta      = ventas?.filter(v => v.metodo_pago === "tarjeta").reduce((s, v) => s + v.total, 0) || 0;
+
+        document.getElementById("resumen-cierre").innerHTML = `
+            <div class="resumen-turno-grid">
+                <div class="resumen-turno-item">
+                    <span class="rt-label">Ventas del día</span>
+                    <span class="rt-valor">${totalVentas}</span>
+                </div>
+                <div class="resumen-turno-item">
+                    <span class="rt-label">Total ingresado</span>
+                    <span class="rt-valor">${formatearPrecio(totalIngresos)}</span>
+                </div>
+                <div class="resumen-turno-item">
+                    <span class="rt-label">Efectivo</span>
+                    <span class="rt-valor">${formatearPrecio(efectivo)}</span>
+                </div>
+                <div class="resumen-turno-item">
+                    <span class="rt-label">Tarjeta</span>
+                    <span class="rt-valor">${formatearPrecio(tarjeta)}</span>
+                </div>
+            </div>
+        `;
+
+        document.getElementById("modal-cierre-turno").classList.remove("oculto");
+    });
+
+    /* Confirmar cierre de turno — delegado en document para evitar problemas de scope */
+    document.addEventListener("click", async function (e) {
+        /* Confirmar cierre */
+        if (e.target.closest("#btn-confirmar-cierre")) {
+            const btn = e.target.closest("#btn-confirmar-cierre");
+            btn.classList.add("cargando");
+
+            const { data: ventas } = await db.from("ventas")
+                .select("*, items:venta_items(*)")
+                .eq("fecha", turnoActual.fecha_apertura)
+                .order("id");
+
+            if (ventas && ventas.length > 0) {
+                generarExcelDia(ventas, turnoActual.fecha_apertura);
+            }
+
+            await db.from("turnos").update({
+                fecha_cierre: obtenerFechaHoy(),
+                hora_cierre:  obtenerHoraAhora() + ":00",
+                estado:       "cerrado",
+            }).eq("id", turnoActual.id);
+
+            turnoActual = null;
+            btn.classList.remove("cargando");
+            document.getElementById("modal-cierre-turno").classList.add("oculto");
+            /* Limpiar carrito y reiniciar historial visual */
+            estado.carrito = [];
+            renderizarOrden();
+            actualizarUITurno();
+            await cargarDatos();
+            renderizarProductos();
+        }
+
+        /* Cancelar cierre */
+        if (e.target.closest("#btn-cancelar-cierre")) {
+            document.getElementById("modal-cierre-turno").classList.add("oculto");
+        }
+    });
+
+    /* =====================================================
+       CIERRE DE MES
+       ===================================================== */
+    async function verificarCierreMes() {
+        const hoy    = new Date();
+        const mesHoy = hoy.getMonth() + 1;
+        const anioHoy = hoy.getFullYear();
+
+        /* Buscar ventas de meses anteriores */
+        const { data: ventasViejas } = await db.from("ventas")
+            .select("id, fecha")
+            .lt("fecha", `${anioHoy}-${String(mesHoy).padStart(2,"0")}-01`)
+            .limit(1);
+
+        if (ventasViejas && ventasViejas.length > 0) {
+            document.getElementById("modal-cierre-mes").classList.remove("oculto");
+        }
+    }
+
+    document.addEventListener("click", async function(e) {
+        if (!e.target.closest("#btn-descargar-mes")) return;
+        const btn = e.target.closest("#btn-descargar-mes");
+        if (btn._procesando) return;
+        btn._procesando = true;
+        btn.classList.add("cargando");
+
+        const hoy     = new Date();
+        const mesHoy  = hoy.getMonth() + 1;
+        const anioHoy = hoy.getFullYear();
+        const hastaFecha = `${anioHoy}-${String(mesHoy).padStart(2,"0")}-01`;
+
+        /* 1. Obtener todas las ventas del mes anterior */
+        const { data: ventas } = await db.from("ventas")
+            .select("*, items:venta_items(*)")
+            .lt("fecha", hastaFecha)
+            .order("fecha");
+
+        /* 2. Generar Excel mensual */
+        if (ventas && ventas.length > 0) {
+            const mesAnterior = mesHoy === 1 ? 12 : mesHoy - 1;
+            const anioAnterior = mesHoy === 1 ? anioHoy - 1 : anioHoy;
+            generarExcelMes(ventas, anioAnterior, mesAnterior);
+        }
+
+        /* 3. Borrar ventas e items del mes anterior */
+        const { data: idsVentas } = await db.from("ventas")
+            .select("id")
+            .lt("fecha", hastaFecha);
+
+        if (idsVentas && idsVentas.length > 0) {
+            const ids = idsVentas.map(v => v.id);
+            await db.from("venta_items").delete().in("venta_id", ids);
+            await db.from("ventas").delete().in("id", ids);
+        }
+
+        this.classList.remove("cargando");
+        document.getElementById("modal-cierre-mes").classList.add("oculto");
+    });
+
+    document.getElementById("btn-saltar-mes").addEventListener("click", () => document.getElementById("modal-cierre-mes").classList.add("oculto"));
+
+    /* =====================================================
+       GENERACIÓN DE EXCEL
+       ===================================================== */
+    function filaVenta(venta) {
+        const { subtotal, iva } = calcularIVA(venta.total);
+        return {
+            "Ticket":        generarNumeroTicket(venta.id),
+            "Fecha":         venta.fecha,
+            "Hora":          venta.hora ? venta.hora.slice(0,5) : "",
+            "Productos":     (venta.items || []).map(i => `${i.nombre_producto}${i.tamano ? " ("+i.tamano+")" : ""} x${i.cantidad}`).join(", "),
+            "Subtotal":      subtotal,
+            "IVA":           iva,
+            "Total":         venta.total,
+            "Método pago":   textoMetodoPago(venta.metodo_pago, venta.tipo_tarjeta),
+            "Facturado":     venta.facturado ? "Sí" : "No",
+        };
+    }
+
+    function aplicarEstilosHoja(ws, nFilas) {
+        ws["!cols"] = [
+            { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 50 },
+            { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 16 }, { wch: 10 },
+        ];
+    }
+
+    function generarExcelDia(ventas, fecha) {
+        const wb   = XLSX.utils.book_new();
+        const rows = ventas.map(filaVenta);
+        const ws   = XLSX.utils.json_to_sheet(rows);
+        aplicarEstilosHoja(ws, rows.length);
+        XLSX.utils.book_append_sheet(wb, ws, "Ventas");
+        XLSX.writeFile(wb, `ventas_${fecha}.xlsx`);
+    }
+
+    function generarExcelMes(ventas, anio, mes) {
+        const wb         = XLSX.utils.book_new();
+        const meses      = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+        const nombreMes  = meses[mes - 1];
+
+        /* Hoja resumen general */
+        const rowsTotal = ventas.map(filaVenta);
+        const wsTotal   = XLSX.utils.json_to_sheet(rowsTotal);
+        aplicarEstilosHoja(wsTotal, rowsTotal.length);
+        XLSX.utils.book_append_sheet(wb, wsTotal, `${nombreMes} ${anio}`);
+
+        /* Una hoja por día */
+        const porDia = {};
+        ventas.forEach(v => {
+            if (!porDia[v.fecha]) porDia[v.fecha] = [];
+            porDia[v.fecha].push(v);
+        });
+        Object.keys(porDia).sort().forEach(fecha => {
+            const rows = porDia[fecha].map(filaVenta);
+            const ws   = XLSX.utils.json_to_sheet(rows);
+            aplicarEstilosHoja(ws, rows.length);
+            XLSX.utils.book_append_sheet(wb, ws, fecha.slice(5)); /* MM-DD */
+        });
+
+        XLSX.writeFile(wb, `ventas_${anio}-${String(mes).padStart(2,"0")}.xlsx`);
+    }
+
     /* =====================================================
        ARRANQUE
        ===================================================== */
+    await inicializarTurno();
     await cargarDatos();
     renderizarChips();
     renderizarProductos();
-    btnConfirmar.disabled = true;
+    /* btnConfirmar.disabled se controla por el turno */
 });

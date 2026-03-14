@@ -83,12 +83,16 @@ function textoMetodoPago(metodoPago, tipoTarjeta) {
    ----------------------------------------------------- */
 function abrirModal(id) {
     const el = document.getElementById(id);
-    if (el) el.classList.add("abierto");
+    if (!el) return;
+    el.classList.remove("oculto");
+    el.classList.add("abierto");
 }
 
 function cerrarModal(id) {
     const el = document.getElementById(id);
-    if (el) el.classList.remove("abierto");
+    if (!el) return;
+    el.classList.add("oculto");
+    el.classList.remove("abierto");
 }
 
 /**

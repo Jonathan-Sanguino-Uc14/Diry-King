@@ -180,8 +180,9 @@ body { font-family: var(--fuente); background: var(--bg); color: var(--texto); h
 /* =====================================================
    MODAL DE TAMAÑO
    ===================================================== */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(6px); }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(6px); }
 .modal-overlay.abierto { display: flex; animation: fadeIn 0.2s ease; }
+.modal-overlay.oculto  { display: none !important; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .modal-tamano-card {
@@ -492,4 +493,164 @@ body { font-family: var(--fuente); background: var(--bg); color: var(--texto); h
     .orden-panel { width: 100%; min-width: 0; border-left: none; border-top: 1px solid var(--borde); max-height: 50vh; }
     .catalogo-panel { overflow-y: auto; }
     .productos-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+}
+/* =====================================================
+   SISTEMA DE TURNOS
+   ===================================================== */
+
+/* Badge de estado de turno */
+.turno-badge {
+    display:      flex;
+    align-items:  center;
+    gap:          6px;
+    font-size:    0.78rem;
+    color:        var(--texto-suave, #888);
+    padding:      4px 10px;
+    border-radius: 20px;
+    background:   rgba(0,0,0,0.06);
+    transition:   all 0.2s;
+}
+.turno-badge.activo {
+    background: rgba(30, 120, 64, 0.12);
+    color:      #1e7840;
+}
+.turno-dot {
+    width:         8px;
+    height:        8px;
+    border-radius: 50%;
+    background:    #ccc;
+    flex-shrink:   0;
+}
+.turno-badge.activo .turno-dot {
+    background: #1e7840;
+    box-shadow: 0 0 0 2px rgba(30,120,64,0.25);
+    animation:  pulso 1.8s infinite;
+}
+@keyframes pulso {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(30,120,64,0.25); }
+    50%       { box-shadow: 0 0 0 5px rgba(30,120,64,0.08); }
+}
+
+/* Botones de turno en header */
+.btn-abrir-turno,
+.btn-cerrar-turno {
+    display:       inline-flex;
+    align-items:   center;
+    gap:           5px;
+    padding:       7px 13px;
+    border-radius: 8px;
+    font-family:   var(--fuente, sans-serif);
+    font-size:     0.8rem;
+    font-weight:   600;
+    cursor:        pointer;
+    border:        none;
+    transition:    all 0.2s;
+}
+.btn-abrir-turno {
+    background: #1e7840;
+    color:      #fff;
+}
+.btn-abrir-turno:hover  { background: #165f32; }
+.btn-cerrar-turno {
+    background: #fee2e2;
+    color:      #dc2626;
+    border:     1px solid #fca5a5;
+}
+.btn-cerrar-turno:hover { background: #fca5a5; }
+
+/* Modal de turno */
+.modal-turno {
+    max-width:  420px;
+    width:      90%;
+    padding:    28px 24px;
+}
+.modal-turno-titulo {
+    font-size:     1.1rem;
+    font-weight:   700;
+    margin-bottom: 8px;
+    color:         #1a1a1a;
+}
+.modal-turno-desc {
+    font-size:     0.88rem;
+    color:         #6b7280;
+    margin-bottom: 20px;
+    line-height:   1.5;
+}
+.modal-turno-resumen {
+    background:    #f9fafb;
+    border-radius: 10px;
+    padding:       16px;
+    margin-bottom: 20px;
+}
+.resumen-turno-grid {
+    display:               grid;
+    grid-template-columns: 1fr 1fr;
+    gap:                   12px;
+}
+.resumen-turno-item {
+    display:        flex;
+    flex-direction: column;
+    gap:            3px;
+}
+.rt-label {
+    font-size:  0.72rem;
+    color:      #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.rt-valor {
+    font-size:   1rem;
+    font-weight: 700;
+    color:       #111;
+}
+.modal-turno-acciones {
+    display:        flex;
+    flex-direction: column;
+    gap:            10px;
+}
+.btn-confirmar-turno {
+    width:           100%;
+    padding:         13px;
+    background:      #1e7840;
+    color:           #fff;
+    border:          none;
+    border-radius:   8px;
+    font-size:       0.92rem;
+    font-weight:     600;
+    cursor:          pointer;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    gap:             8px;
+    transition:      background 0.2s;
+}
+.btn-confirmar-turno:hover { background: #165f32; }
+.btn-confirmar-turno.cargando {
+    opacity:        0.7;
+    pointer-events: none;
+}
+.btn-confirmar-turno.cargando .spinner   { display: block; }
+.btn-confirmar-turno .spinner {
+    width:         15px;
+    height:        15px;
+    border:        2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    display:       none;
+    animation:     girar 0.7s linear infinite;
+}
+.btn-cancelar-turno {
+    width:         100%;
+    padding:       11px;
+    background:    transparent;
+    color:         #6b7280;
+    border:        1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size:     0.88rem;
+    cursor:        pointer;
+    transition:    all 0.2s;
+}
+.btn-cancelar-turno:hover {
+    border-color: #9ca3af;
+    color:        #374151;
 }
