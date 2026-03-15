@@ -23,6 +23,9 @@
             <button class="nav-item" data-seccion="productos">
                 <span class="nav-icon">⊞</span><span>Productos</span>
             </button>
+            <button class="nav-item" data-seccion="promociones">
+                <span class="nav-icon">🏷</span><span>Promociones</span>
+            </button>
             <button class="nav-item" data-seccion="calendario">
                 <span class="nav-icon">◫</span><span>Calendario</span>
             </button>
@@ -132,6 +135,30 @@
             </div>
         </section>
 
+        <!-- PROMOCIONES -->
+        <section id="seccion-promociones" class="seccion">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Promociones</h2>
+                    <button class="btn-primario" id="btn-agregar-promo">+ Nueva promoción</button>
+                </div>
+                <div class="tabla-wrapper">
+                    <table class="tabla">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Tipo</th>
+                                <th>Valor</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-promos-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
         <!-- CALENDARIO -->
         <section id="seccion-calendario" class="seccion">
             <div class="calendario-layout">
@@ -158,6 +185,51 @@
         </section>
 
     </main>
+
+    <!-- MODAL: Agregar Promoción -->
+    <div class="modal-overlay oculto" id="modal-promo-dueno">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-promo-titulo">Nueva promoción</h3>
+                <button class="modal-cerrar" data-modal="modal-promo-dueno">✕</button>
+            </div>
+            <form id="form-promo">
+                <div class="campo-grupo">
+                    <label for="promo-nombre">Nombre</label>
+                    <input type="text" id="promo-nombre" placeholder="Ej: 2x1 helados, Happy hour, Descuento empleado" required>
+                </div>
+                <div class="campo-grupo">
+                    <label for="promo-tipo">Tipo de promoción</label>
+                    <select id="promo-tipo" required>
+                        <option value="porcentaje">Porcentaje sobre el total — Ej: 10% de descuento</option>
+                        <option value="monto_fijo">Monto fijo sobre el total — Ej: $20 de descuento</option>
+                        <option value="porcentaje_categoria">Porcentaje solo en una categoría</option>
+                        <option value="monto_categoria">Monto fijo solo en una categoría</option>
+                        <option value="2x1">2x1 — el producto más barato gratis</option>
+                    </select>
+                </div>
+
+                <!-- Valor numérico — se oculta en 2x1 -->
+                <div class="campo-grupo" id="promo-valor-grupo">
+                    <label for="promo-valor" id="promo-valor-label">Porcentaje de descuento</label>
+                    <input type="number" id="promo-valor" placeholder="Ej: 10" min="0" step="0.01">
+                </div>
+
+                <!-- Categoría — solo visible cuando aplica a categoría o 2x1 -->
+                <div class="campo-grupo" id="promo-categoria-grupo" style="display:none">
+                    <label for="promo-categoria">Categoría a la que aplica</label>
+                    <select id="promo-categoria">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                </div>
+
+                <div class="modal-acciones">
+                    <button type="button" class="btn-secundario" data-modal="modal-promo-dueno">Cancelar</button>
+                    <button type="submit" class="btn-primario">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- MODAL: Agregar/Editar Producto -->
     <div class="modal-overlay oculto" id="modal-producto">

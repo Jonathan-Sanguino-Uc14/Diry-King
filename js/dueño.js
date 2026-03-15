@@ -95,9 +95,10 @@ document.addEventListener("DOMContentLoaded", async function () {
        NAVEGACIÓN ENTRE SECCIONES
        ===================================================== */
     const TITULOS_SECCIONES = {
-        dashboard:  { h1: "Dashboard",  sub: "Resumen del día" },
-        productos:  { h1: "Productos",  sub: "Gestión de inventario" },
-        calendario: { h1: "Calendario", sub: "Entregas programadas" },
+        dashboard:   { h1: "Dashboard",    sub: "Resumen del día" },
+        productos:   { h1: "Productos",    sub: "Gestión de inventario" },
+        promociones: { h1: "Promociones",  sub: "Descuentos autorizados por supervisor" },
+        calendario:  { h1: "Calendario",   sub: "Entregas programadas" },
     };
 
     document.querySelectorAll(".nav-item").forEach(function (item) {
@@ -620,8 +621,183 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     /* =====================================================
-       CALENDARIO DE ENTREGAS
+       PROMOCIONES — GESTIÓN DESDE EL PANEL DEL DUEÑO
+       El dueño puede crear, activar/desactivar y eliminar
+       promociones. El empleado las aplica con clave de supervisor.
        ===================================================== */
+
+
+    /* CAMBIO: cargarYRenderizarPromos actualizado con soporte para todos los tipos */
+    async function cargarYRenderizarPromos() {
+        const { data: promos } = await db
+            .from("promociones")
+            .select("*, categoria:categorias(nombre)")
+            .order("nombre");
+
+        const tbody = document.getElementById("tabla-promos-body");
+        tbody.innerHTML = "";
+
+        if (!promos || promos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="tabla-vacia">Sin promociones creadas</td></tr>';
+            return;
+        }
+
+        promos.forEach(function (p) {
+            const tr = document.createElement("tr");
+            let valorTexto = "—";
+            if (p.tipo === "2x1") {
+                valorTexto = `2x1${p.categoria ? " en " + p.categoria.nombre : ""}`;
+            } else if (p.tipo === "porcentaje" || p.tipo === "porcentaje_categoria") {
+                valorTexto = `${p.valor}%${p.categoria ? " en " + p.categoria.nombre : ""}`;
+            } else {
+                valorTexto = `${formatearPrecio(p.valor)}${p.categoria ? " en " + p.categoria.nombre : ""}`;
+            }
+
+            tr.innerHTML = `
+                <td>${p.nombre}</td>
+                <td class="col-suave">${etiquetaTipoPromo(p.tipo)}</td>
+                <td><strong>${valorTexto}</strong></td>
+                <td>
+                    <span style="padding:3px 10px;border-radius:99px;font-size:0.75rem;font-weight:600;
+                        background:${p.activa ? "#dcfce7" : "#f3f4f6"};
+                        color:${p.activa ? "#16a34a" : "#6b7280"}">
+                        ${p.activa ? "Activa" : "Inactiva"}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn-secundario btn-toggle-promo" data-id="${p.id}" data-activa="${p.activa}"
+                        style="font-size:0.78rem;padding:4px 10px;margin-right:6px">
+                        ${p.activa ? "Desactivar" : "Activar"}
+                    </button>
+                    <button class="btn-eliminar btn-eliminar-promo" data-id="${p.id}"
+                        style="font-size:0.78rem;padding:4px 10px">✕</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll(".btn-toggle-promo").forEach(function (btn) {
+            btn.addEventListener("click", async function () {
+                const id     = Number(this.dataset.id);
+                const activa = this.dataset.activa === "true";
+                await db.from("promociones").update({ activa: !activa }).eq("id", id);
+                cargarYRenderizarPromos();
+            });
+        });
+
+        tbody.querySelectorAll(".btn-eliminar-promo").forEach(function (btn) {
+            btn.addEventListener("click", async function () {
+                if (!confirm("¿Eliminar esta promoción?")) return;
+                await db.from("promociones").delete().eq("id", Number(this.dataset.id));
+                cargarYRenderizarPromos();
+            });
+        });
+    }
+
+    /* Abrir modal de nueva promoción */
+    document.getElementById("btn-agregar-promo").addEventListener("click", function () {
+        document.getElementById("form-promo").reset();
+        document.getElementById("modal-promo-titulo").textContent = "Nueva promoción";
+        document.getElementById("promo-valor-grupo").style.display    = "block";
+        document.getElementById("promo-categoria-grupo").style.display = "none";
+        document.getElementById("promo-valor-label").textContent = "Porcentaje de descuento";
+        document.getElementById("promo-valor").required = true;
+
+        /* Llenar categorías */
+        const sel = document.getElementById("promo-categoria");
+        sel.innerHTML = '<option value="">Todas las categorías</option>';
+        estado.categorias.forEach(function (c) {
+            const op = document.createElement("option");
+            op.value = c.id;
+            op.textContent = c.nombre;
+            sel.appendChild(op);
+        });
+
+        abrirModal("modal-promo-dueno");
+    });
+
+    /* CAMBIO: Mostrar/ocultar campos según el tipo de promoción elegido */
+    document.getElementById("promo-tipo").addEventListener("change", function () {
+        const tipo         = this.value;
+        const valorGrupo   = document.getElementById("promo-valor-grupo");
+        const catGrupo     = document.getElementById("promo-categoria-grupo");
+        const valorLabel   = document.getElementById("promo-valor-label");
+        const valorInput   = document.getElementById("promo-valor");
+
+        /* 2x1 no necesita valor numérico */
+        if (tipo === "2x1") {
+            valorGrupo.style.display    = "none";
+            catGrupo.style.display      = "block";
+            valorInput.required         = false;
+        } else if (tipo === "porcentaje_categoria" || tipo === "monto_categoria") {
+            valorGrupo.style.display    = "block";
+            catGrupo.style.display      = "block";
+            valorInput.required         = true;
+            valorLabel.textContent      = tipo === "porcentaje_categoria"
+                ? "Porcentaje de descuento"
+                : "Monto fijo en pesos";
+        } else {
+            valorGrupo.style.display    = "block";
+            catGrupo.style.display      = "none";
+            valorInput.required         = true;
+            valorLabel.textContent      = tipo === "porcentaje"
+                ? "Porcentaje de descuento"
+                : "Monto fijo en pesos";
+        }
+    });
+
+    /* CAMBIO: Guardar promoción con los nuevos campos */
+    document.getElementById("form-promo").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const nombre      = document.getElementById("promo-nombre").value.trim();
+        const tipo        = document.getElementById("promo-tipo").value;
+        const valor       = parseFloat(document.getElementById("promo-valor").value) || 0;
+        const categoriaId = document.getElementById("promo-categoria").value || null;
+
+        if (!nombre) { alert("Ingresa el nombre de la promoción."); return; }
+        if (tipo !== "2x1" && valor <= 0) { alert("Ingresa un valor mayor a 0."); return; }
+        if ((tipo === "porcentaje_categoria" || tipo === "monto_categoria" || tipo === "2x1") && !categoriaId) {
+            alert("Selecciona la categoría a la que aplica esta promoción."); return;
+        }
+
+        /* CORRECCIÓN: capturar error del insert para mostrar diagnóstico */
+        const { error } = await db.from("promociones").insert({
+            nombre,
+            tipo,
+            valor:        tipo === "2x1" ? 0 : valor,
+            activa:       true,
+            categoria_id: categoriaId ? Number(categoriaId) : null,
+        });
+
+        if (error) {
+            console.error("Error al guardar promoción:", error);
+            alert("Error al guardar.\n\nDetalle: " + (error.message || error.code || JSON.stringify(error)) + "\n\nVerifica que corriste el SQL: ALTER TABLE promociones ADD COLUMN IF NOT EXISTS categoria_id integer");
+            return;
+        }
+
+        cerrarModal("modal-promo-dueno");
+        cargarYRenderizarPromos();
+        this.reset();
+    });
+
+    /* CAMBIO: etiqueta de tipo legible en la tabla */
+    function etiquetaTipoPromo(tipo) {
+        const etiquetas = {
+            porcentaje:           "% sobre total",
+            monto_fijo:           "$ sobre total",
+            porcentaje_categoria: "% en categoría",
+            monto_categoria:      "$ en categoría",
+            "2x1":                "2x1",
+        };
+        return etiquetas[tipo] || tipo;
+    }
+
+    /* Cargar promos cuando se navega a la sección */
+    document.querySelectorAll(".nav-item").forEach(function (item) {
+        item.addEventListener("click", function () {
+            if (this.dataset.seccion === "promociones") cargarYRenderizarPromos();
+        });
+    });
     function renderizarCalendario() {
         const grid   = document.getElementById("calendario-grid");
         const titulo = document.getElementById("mes-actual");

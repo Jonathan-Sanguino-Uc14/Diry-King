@@ -25,6 +25,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         busqueda:           "",
         productoEnModal:    null,
         tamanoSeleccionado: null,
+        /* NUEVO: promoción autorizada por supervisor */
+        promoAplicada:      null,   // objeto { id, nombre, tipo, valor } o null
+        descuentoActual:    0,      // monto en pesos del descuento calculado
     };
 
 
@@ -220,7 +223,6 @@ document.addEventListener("DOMContentLoaded", async function () {
        únicamente al confirmar la venta.
        ===================================================== */
     function agregarAlCarrito(prod, tamano, precio, comentario) {
-        /* Si ya existe la misma combinación, solo sumamos cantidad */
         const existente = estado.carrito.find(i =>
             i.productoId === prod.id &&
             i.tamano     === tamano  &&
@@ -231,13 +233,15 @@ document.addEventListener("DOMContentLoaded", async function () {
             existente.cantidad++;
         } else {
             estado.carrito.push({
-                carritoId:  Date.now() + Math.random(),
-                productoId: prod.id,
-                nombre:     prod.nombre,
+                carritoId:   Date.now() + Math.random(),
+                productoId:  prod.id,
+                nombre:      prod.nombre,
                 precio,
-                cantidad:   1,
+                cantidad:    1,
                 tamano,
                 comentario,
+                /* CAMBIO: guardar categoriaId para promos por categoría */
+                categoriaId: prod.categoria_id || null,
             });
         }
 
@@ -326,12 +330,71 @@ document.addEventListener("DOMContentLoaded", async function () {
         calcularCambio();
     }
 
-    function actualizarTotales(total) {
-        document.getElementById("subtotal").textContent    = formatearPrecio(total);
-        document.getElementById("total-orden").textContent = formatearPrecio(total);
+    function actualizarTotales(totalBruto) {
+        document.getElementById("subtotal").textContent = formatearPrecio(totalBruto);
+
+        const filaDesc    = document.getElementById("fila-descuento");
+        const montoDescEl = document.getElementById("monto-descuento");
+        const labelDesc   = document.getElementById("label-descuento");
+
+        if (estado.promoAplicada && totalBruto > 0) {
+            const promo     = estado.promoAplicada;
+            let descuento   = 0;
+
+            if (promo.tipo === "porcentaje") {
+                /* Descuento porcentaje sobre todo el total */
+                descuento = totalBruto * (promo.valor / 100);
+                labelDesc.textContent = `Descuento (${promo.valor}%)`;
+
+            } else if (promo.tipo === "monto_fijo") {
+                /* Descuento monto fijo sobre todo el total */
+                descuento = Math.min(promo.valor, totalBruto);
+                labelDesc.textContent = "Descuento";
+
+            } else if (promo.tipo === "porcentaje_categoria") {
+                /* Descuento porcentaje solo en items de la categoría indicada */
+                const itemsCat = estado.carrito.filter(i => i.categoriaId === promo.categoria_id);
+                const totalCat = itemsCat.reduce((s, i) => s + i.precio * i.cantidad, 0);
+                descuento = totalCat * (promo.valor / 100);
+                labelDesc.textContent = `${promo.valor}% en ${promo.categoria?.nombre || "categoría"}`;
+
+            } else if (promo.tipo === "monto_categoria") {
+                /* Descuento monto fijo solo en items de la categoría indicada */
+                const itemsCat2 = estado.carrito.filter(i => i.categoriaId === promo.categoria_id);
+                const totalCat2 = itemsCat2.reduce((s, i) => s + i.precio * i.cantidad, 0);
+                descuento = Math.min(promo.valor, totalCat2);
+                labelDesc.textContent = `Desc. en ${promo.categoria?.nombre || "categoría"}`;
+
+            } else if (promo.tipo === "2x1") {
+                /* 2x1: el item individual más barato de la categoría sale gratis */
+                const itemsCat3 = estado.carrito.filter(i => i.categoriaId === promo.categoria_id);
+                if (itemsCat3.length > 0) {
+                    const masBarato = itemsCat3.reduce((min, i) => i.precio < min.precio ? i : min);
+                    descuento = masBarato.precio;
+                    labelDesc.textContent = `2x1 en ${promo.categoria?.nombre || "categoría"}`;
+                }
+            }
+
+            estado.descuentoActual  = descuento;
+            montoDescEl.textContent = "−" + formatearPrecio(descuento);
+            filaDesc.style.display  = descuento > 0 ? "flex" : "none";
+            document.getElementById("total-orden").textContent =
+                formatearPrecio(Math.max(0, totalBruto - descuento));
+        } else {
+            estado.descuentoActual = 0;
+            filaDesc.style.display = "none";
+            document.getElementById("total-orden").textContent = formatearPrecio(totalBruto);
+        }
     }
 
+    /* CAMBIO: obtenerTotal ahora devuelve el total YA con descuento aplicado */
     function obtenerTotal() {
+        const bruto = estado.carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+        return bruto - (estado.descuentoActual || 0);
+    }
+
+    /* CAMBIO: obtenerTotalBruto devuelve el total sin descuento (para el ticket) */
+    function obtenerTotalBruto() {
         return estado.carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
     }
 
@@ -395,8 +458,145 @@ document.addEventListener("DOMContentLoaded", async function () {
     inputRecibido.addEventListener("input", calcularCambio);
 
     /* =====================================================
-       LIMPIAR ORDEN
+       PROMOCIONES — AUTORIZACIÓN POR SUPERVISOR
+       Flujo:
+         1. Empleado presiona "Aplicar promoción"
+         2. Se cargan las promos activas de Supabase
+         3. Empleado elige promo e ingresa clave del supervisor
+         4. Se valida que la clave corresponda a gerente o dueño
+         5. Si es correcta, se aplica el descuento a la orden
+         6. El descuento se refleja en totales y en el ticket
        ===================================================== */
+
+    /* Cargar promociones activas desde Supabase */
+    async function cargarPromociones() {
+        const { data } = await db.from("promociones")
+            .select("*")
+            .eq("activa", true)
+            .order("nombre");
+        return data || [];
+    }
+
+    /* Mostrar u ocultar el banner de promo activa en la orden */
+    function actualizarBannerPromo() {
+        const info   = document.getElementById("promo-activa-info");
+        const nombre = document.getElementById("promo-activa-nombre");
+        if (estado.promoAplicada) {
+            const etiqueta = estado.promoAplicada.tipo === "porcentaje"
+                ? `${estado.promoAplicada.nombre} (${estado.promoAplicada.valor}% off)`
+                : `${estado.promoAplicada.nombre} (−${formatearPrecio(estado.promoAplicada.valor)})`;
+            nombre.textContent  = etiqueta;
+            info.style.display  = "flex";
+        } else {
+            info.style.display  = "none";
+        }
+    }
+
+    /* Botón abrir modal de promoción */
+    document.getElementById("btn-aplicar-promo").addEventListener("click", async function () {
+        if (estado.carrito.length === 0) {
+            alert("Agrega productos a la orden antes de aplicar una promoción.");
+            return;
+        }
+
+        /* Cargar promos y llenar el select */
+        const promos  = await cargarPromociones();
+        const select  = document.getElementById("select-promo");
+        select.innerHTML = '<option value="">Selecciona una promoción...</option>';
+
+        if (promos.length === 0) {
+            alert("No hay promociones activas configuradas.");
+            return;
+        }
+
+        promos.forEach(function (p) {
+            const op       = document.createElement("option");
+            op.value       = p.id;
+            op.textContent = p.tipo === "porcentaje"
+                ? `${p.nombre} — ${p.valor}% de descuento`
+                : `${p.nombre} — −${formatearPrecio(p.valor)}`;
+            select.appendChild(op);
+        });
+
+        document.getElementById("input-clave-promo").value = "";
+        document.getElementById("error-promo").textContent = "";
+        document.getElementById("modal-promo").classList.remove("oculto");
+        setTimeout(() => document.getElementById("select-promo").focus(), 100);
+    });
+
+    /* Confirmar autorización de promoción */
+    document.getElementById("btn-confirmar-promo").addEventListener("click", async function () {
+        const promoId = document.getElementById("select-promo").value;
+        const clave   = document.getElementById("input-clave-promo").value;
+        const errorEl = document.getElementById("error-promo");
+
+        if (!promoId) {
+            errorEl.textContent = "Selecciona una promoción.";
+            return;
+        }
+        if (!clave) {
+            errorEl.textContent = "Ingresa la contraseña del supervisor.";
+            document.getElementById("input-clave-promo").focus();
+            return;
+        }
+
+        this.classList.add("cargando");
+        errorEl.textContent = "";
+
+        /* Validar que la clave corresponda a un gerente o dueño */
+        const { data: supervisor, error } = await db
+            .from("usuarios")
+            .select("id, nombre, rol")
+            .eq("password", clave)
+            .in("rol", ["dueño", "gerente"])
+            .maybeSingle();
+
+        this.classList.remove("cargando");
+
+        if (error || !supervisor) {
+            errorEl.textContent = "Contraseña incorrecta o no tienes permisos para autorizar.";
+            document.getElementById("input-clave-promo").value = "";
+            document.getElementById("input-clave-promo").focus();
+            return;
+        }
+
+        /* ✅ Autorizado — cargar datos de la promo seleccionada */
+        const { data: promoData } = await db
+            .from("promociones")
+            .select("*")
+            .eq("id", Number(promoId))
+            .single();
+
+        if (!promoData) {
+            errorEl.textContent = "No se pudo cargar la promoción.";
+            return;
+        }
+
+        /* Aplicar la promo al estado */
+        estado.promoAplicada = promoData;
+        document.getElementById("modal-promo").classList.add("oculto");
+        actualizarBannerPromo();
+
+        /* Recalcular totales con el descuento */
+        const bruto = estado.carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+        actualizarTotales(bruto);
+        calcularCambio();
+    });
+
+    /* Cancelar modal de promoción */
+    document.getElementById("btn-cancelar-promo").addEventListener("click", function () {
+        document.getElementById("modal-promo").classList.add("oculto");
+    });
+
+    /* Quitar promoción activa */
+    document.getElementById("btn-quitar-promo").addEventListener("click", function () {
+        estado.promoAplicada  = null;
+        estado.descuentoActual = 0;
+        actualizarBannerPromo();
+        const bruto = estado.carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+        actualizarTotales(bruto);
+        calcularCambio();
+    });
     document.getElementById("btn-limpiar-orden").addEventListener("click", function () {
         if (estado.carrito.length === 0) return;
         if (!confirm("¿Limpiar la orden actual?")) return;
@@ -404,7 +604,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
     function limpiarOrden() {
-        estado.carrito = [];
+        estado.carrito        = [];
+        /* NUEVO: limpiar promoción al limpiar la orden */
+        estado.promoAplicada  = null;
+        estado.descuentoActual = 0;
+        actualizarBannerPromo();
         inputRecibido.value = "";
         document.getElementById("comentario-orden").value = "";
         elCambio.textContent = "—";
@@ -479,6 +683,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                 comentario_orden: comentarioOrden || null,
                 codigo_factura:   generarCodigoFactura(),
                 facturado:        false,
+                descuento:        estado.descuentoActual || 0,
+                promo_nombre:     estado.promoAplicada?.nombre || null,
+                /* MEJORA: asociar cada venta a su turno para aislamiento exacto */
+                turno_id:         turnoActual?.id || null,
             })
             .select()
             .single();
@@ -538,6 +746,7 @@ document.addEventListener("DOMContentLoaded", async function () {
        TICKET DE CONFIRMACIÓN
        ===================================================== */
     function mostrarTicket(venta, items, comentarioOrden) {
+        /* CAMBIO: calcular IVA sobre el total final (ya con descuento) */
         const { subtotal, iva } = calcularIVA(venta.total);
 
         document.getElementById("ticket-numero").textContent = generarNumeroTicket(venta.id);
@@ -569,6 +778,18 @@ document.addEventListener("DOMContentLoaded", async function () {
             document.getElementById("ticket-nota-texto").textContent = comentarioOrden;
         } else {
             notaOrdenEl.style.display = "none";
+        }
+
+        /* NUEVO: mostrar descuento en ticket si hubo promo aplicada */
+        const filaDesc = document.getElementById("ticket-fila-descuento");
+        if (venta.descuento && venta.descuento > 0) {
+            filaDesc.style.display = "flex";
+            document.getElementById("ticket-promo-nombre").textContent =
+                venta.promo_nombre ? `Promo: ${venta.promo_nombre}` : "Descuento";
+            document.getElementById("ticket-descuento").textContent =
+                "−" + formatearPrecio(venta.descuento);
+        } else {
+            filaDesc.style.display = "none";
         }
 
         /* Totales */
@@ -690,13 +911,33 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     async function calcularEfectivoTurno() {
         if (!turnoActual) return;
-        const { data: ventas } = await db.from("ventas")
+
+        /* MEJORA: filtrar por turno_id para aislamiento exacto entre turnos.
+           Esto funciona una vez que se corre el ALTER TABLE en Supabase.
+           Fallback: filtra por fecha + hora de apertura */
+        const { data: ventasPorTurno } = await db.from("ventas")
             .select("total, metodo_pago")
-            .eq("fecha", turnoActual.fecha_apertura);
-        const efectivo = (ventas || [])
+            .eq("turno_id", turnoActual.id);
+
+        /* Si turno_id ya está disponible, usarlo */
+        if (ventasPorTurno !== null) {
+            const efectivo = (ventasPorTurno || [])
+                .filter(v => v.metodo_pago === "efectivo")
+                .reduce((s, v) => s + (v.total || 0), 0);
+            actualizarIndicadorCaja(efectivo);
+            return;
+        }
+
+        /* Fallback: filtrar por fecha y hora si turno_id aún no existe */
+        const { data: ventasFallback } = await db.from("ventas")
+            .select("total, metodo_pago, hora")
+            .eq("fecha", turnoActual.fecha_apertura)
+            .gte("hora", turnoActual.hora_apertura);
+
+        const efectivoFallback = (ventasFallback || [])
             .filter(v => v.metodo_pago === "efectivo")
             .reduce((s, v) => s + (v.total || 0), 0);
-        actualizarIndicadorCaja(efectivo);
+        actualizarIndicadorCaja(efectivoFallback);
     }
 
     /* ── Indicador de caja en tiempo real ── */
@@ -740,7 +981,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         turnoActual = data;
         document.getElementById("modal-abrir-turno").classList.add("oculto");
         actualizarUITurno();
-        actualizarIndicadorCaja(0);
+        /* CORRECCIÓN: recalcular desde Supabase en lugar de asumir 0,
+           así si hay ventas del mismo día de un turno anterior no se mezclan */
+        await calcularEfectivoTurno();
     });
 
     /* Botón cerrar turno → mostrar corte de caja completo */

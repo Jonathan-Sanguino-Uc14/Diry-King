@@ -643,7 +643,7 @@ body { font-family: var(--fuente); background: var(--bg); color: var(--texto); h
     width:         100%;
     padding:       11px;
     background:    transparent;
-    color:         #6b7280;
+    color:         #0055ff;
     border:        1px solid #e5e7eb;
     border-radius: 8px;
     font-size:     0.88rem;

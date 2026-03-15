@@ -27,7 +27,7 @@
             </div>
             <button class="btn-abrir-turno" id="btn-abrir-turno">▶ Abrir turno</button>
             <button class="btn-cerrar-turno" id="btn-cerrar-turno" style="display:none">◼ Cerrar turno</button>
-            <div id="caja-indicator" style="display:none;background:#1a2e1a;border:1px solid #2d5a2d;border-radius:8px;padding:4px 12px;font-size:0.82rem;color:#4ade80;font-weight:600;letter-spacing:0.02em">
+            <div id="caja-indicator" style="display:none;background:#000000;border:1px solid #000000;border-radius:8px;padding:4px 12px;font-size:0.82rem;color:#4ade80;font-weight:600;letter-spacing:0.02em">
                 💵 Caja: <span id="caja-monto">$0.00</span>
             </div>
             <button class="btn-cambiar-panel" id="btn-cambiar-panel" style="display:none">⚙ Panel admin</button>
@@ -42,19 +42,52 @@
             <h2 class="modal-turno-titulo">▶ Abrir turno</h2>
             <p class="modal-turno-desc">Ingresa el monto inicial en caja (fondo de efectivo).</p>
             <div style="margin: 16px 0;">
-                <label style="font-size:0.78rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Fondo inicial</label>
+                <label style="font-size:0.78rem;font-weight:600;color:#000000;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Fondo inicial</label>
                 <div style="display:flex;align-items:center;gap:8px">
                     <span style="font-size:1.1rem;font-weight:700">$</span>
                     <input type="number" id="input-fondo-inicial" min="0" step="0.50" placeholder="0.00"
-                        style="flex:1;padding:12px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:1.1rem;font-weight:600;outline:none">
+                        style="flex:1;padding:12px 14px;border:1px solid #000000;border-radius:8px;font-size:1.1rem;font-weight:600;outline:none">
                 </div>
-                <p style="font-size:0.75rem;color:#888;margin-top:6px">Este monto es el efectivo con el que arranca la caja. Puede ser $0.</p>
+                <p style="font-size:0.75rem;color:#000000;margin-top:6px">Este monto es el efectivo con el que arranca la caja. Puede ser $0.</p>
             </div>
             <div class="modal-turno-acciones">
                 <button class="btn-confirmar-turno" id="btn-confirmar-abrir-turno">
                     <span class="btn-texto">Abrir turno</span>
                     <span class="spinner"></span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Autorización de promoción por gerente/dueño -->
+    <!-- El empleado elige la promo, ingresa la clave del supervisor y se aplica -->
+    <div class="modal-overlay oculto" id="modal-promo">
+        <div class="modal-box modal-turno" style="max-width:420px">
+            <h2 class="modal-turno-titulo">🏷 Aplicar promoción</h2>
+            <p class="modal-turno-desc">Selecciona la promoción e ingresa la contraseña del gerente o dueño para autorizar.</p>
+
+            <!-- Lista de promociones disponibles -->
+            <div style="margin-bottom:14px">
+                <label style="font-size:0.75rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Promoción</label>
+                <select id="select-promo" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:0.9rem;outline:none">
+                    <option value="">Selecciona una promoción...</option>
+                </select>
+            </div>
+
+            <!-- Contraseña del supervisor -->
+            <div style="margin-bottom:6px">
+                <label style="font-size:0.75rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Contraseña del supervisor</label>
+                <input type="password" id="input-clave-promo" placeholder="Ingresa la clave del gerente o dueño"
+                    style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:0.9rem;outline:none">
+            </div>
+            <p id="error-promo" style="font-size:0.8rem;color:#dc2626;min-height:18px;margin-bottom:8px"></p>
+
+            <div class="modal-turno-acciones">
+                <button class="btn-confirmar-turno" id="btn-confirmar-promo">
+                    <span class="btn-texto">Autorizar y aplicar</span>
+                    <span class="spinner"></span>
+                </button>
+                <button class="btn-cancelar-turno" id="btn-cancelar-promo">Cancelar</button>
             </div>
         </div>
     </div>
@@ -136,9 +169,26 @@
                     <span>Subtotal</span>
                     <span id="subtotal">$0.00</span>
                 </div>
+                <!-- NUEVO: fila de descuento, oculta hasta que se aplique una promoción -->
+                <div class="orden-total-fila" id="fila-descuento" style="display:none;color:#dc2626">
+                    <span id="label-descuento">Descuento</span>
+                    <span id="monto-descuento">−$0.00</span>
+                </div>
                 <div class="orden-total-fila grande">
                     <span>Total</span>
                     <span id="total-orden">$0.00</span>
+                </div>
+            </div>
+
+            <!-- NUEVO: botón para aplicar promoción con autorización del gerente -->
+            <div id="promo-seccion" style="margin:8px 0">
+                <button class="btn-secundario" id="btn-aplicar-promo" style="width:100%;font-size:0.82rem">
+                    🏷 Aplicar promoción
+                </button>
+                <!-- Se muestra cuando hay una promo activa -->
+                <div id="promo-activa-info" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:0.82rem;display:none;justify-content:space-between;align-items:center">
+                    <span id="promo-activa-nombre" style="color:#16a34a;font-weight:600"></span>
+                    <button id="btn-quitar-promo" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:0.78rem;font-weight:600">✕ Quitar</button>
                 </div>
             </div>
 
@@ -314,6 +364,11 @@
                     <div class="ticket-fila">
                         <span>Subtotal</span>
                         <span id="ticket-subtotal"></span>
+                    </div>
+                    <!-- NUEVO: fila de descuento en ticket, oculta si no hay promo -->
+                    <div class="ticket-fila" id="ticket-fila-descuento" style="display:none">
+                        <span id="ticket-promo-nombre">Descuento</span>
+                        <span id="ticket-descuento" style="color:#dc2626"></span>
                     </div>
                     <div class="ticket-fila">
                         <span>IVA (16%)</span>
