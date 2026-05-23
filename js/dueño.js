@@ -99,6 +99,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         productos:   { h1: "Productos",    sub: "Gestión de inventario" },
         promociones: { h1: "Promociones",  sub: "Descuentos autorizados por supervisor" },
         calendario:  { h1: "Calendario",   sub: "Entregas programadas" },
+        horario:    { h1: "Horario",      sub: "Gestión de turnos y horarios de atención" },
+
     };
 
     document.querySelectorAll(".nav-item").forEach(function (item) {
@@ -115,6 +117,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             document.getElementById("subtitulo-seccion").textContent = TITULOS_SECCIONES[sec].sub;
 
             if (sec === "calendario") renderizarCalendario();
+            if (sec === "horario") renderizarHorarios();
         });
     });
 
@@ -1206,6 +1209,122 @@ document.addEventListener("DOMContentLoaded", async function () {
         XLSX.utils.book_append_sheet(wb, ws, fecha.slice(5));
         XLSX.writeFile(wb, `ventas_${fecha}.xlsx`);
     });
+ 
+   /* =====================================================
+   HORARIOS — solo en memoria, sin Supabase
+   ===================================================== */
+const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const DIAS_KEY    = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"];
+
+let horariosLista     = [];   // array de objetos en memoria
+let horarioEditandoIdx = null; // índice del que se está editando
+
+/* ── Renderizar tabla ── */
+function renderizarHorarios() {
+    const tbody = document.getElementById("tabla-horarios-body");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (horariosLista.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="tabla-vacia">Sin horarios registrados</td></tr>';
+        return;
+    }
+
+    horariosLista.forEach(function (h, idx) {
+        const tr = document.createElement("tr");
+
+        const celdas = DIAS_KEY.map(function (d) {
+            const turno = h[d];
+            if (!turno || turno === "libre") {
+                return `<td class="col-suave" style="text-align:center">—</td>`;
+            }
+            return `<td style="text-align:center;font-size:0.82rem">${turno}</td>`;
+        }).join("");
+
+        tr.innerHTML = `
+            <td><strong>${h.nombre}</strong></td>
+            ${celdas}
+            <td>
+                <button class="btn-ver-ticket btn-editar-horario" data-idx="${idx}">✎ Editar</button>
+                <button class="btn-eliminar btn-eliminar-horario" data-idx="${idx}" style="margin-left:4px">✕</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll(".btn-editar-horario").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            abrirModalHorario(Number(this.dataset.idx));
+        });
+    });
+
+    tbody.querySelectorAll(".btn-eliminar-horario").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            if (!confirm("¿Eliminar el horario de este empleado?")) return;
+            horariosLista.splice(Number(this.dataset.idx), 1);
+            renderizarHorarios();
+        });
+    });
+}
+
+/* ── Abrir modal ── */
+function abrirModalHorario(idx = null) {
+    horarioEditandoIdx = idx;
+    const h = idx !== null ? horariosLista[idx] : null;
+
+    document.getElementById("modal-horario-titulo").textContent =
+        idx !== null ? "Editar horario" : "Asignar horario";
+
+    document.getElementById("horario-empleado").value = h ? h.nombre : "";
+
+    const grid = document.getElementById("horario-dias-grid");
+    grid.innerHTML = "";
+
+    DIAS_SEMANA.forEach(function (dia, i) {
+        const key   = DIAS_KEY[i];
+        const valor = h ? (h[key] === "libre" ? "" : h[key] || "") : "";
+        const div   = document.createElement("div");
+        div.style.cssText = "display:grid;grid-template-columns:110px 1fr;align-items:center;gap:12px;margin-bottom:10px";
+        div.innerHTML = `
+            <label style="font-size:0.88rem;font-weight:600;color:var(--texto-suave)">${dia}</label>
+            <input type="text" data-dia="${key}"
+                   placeholder="Ej: 9:00–17:00  o  dejar vacío si no trabaja"
+                   value="${valor}"
+                   style="padding:8px 12px;border:1px solid var(--borde);border-radius:8px;font-size:0.88rem;outline:none;font-family:var(--fuente)">
+        `;
+        grid.appendChild(div);
+    });
+
+    abrirModal("modal-horario");
+}
+
+/* ── Guardar ── */
+document.getElementById("form-horario").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const nombre = document.getElementById("horario-empleado").value.trim();
+    if (!nombre) return;
+
+    const registro = { nombre };
+    document.querySelectorAll("#horario-dias-grid input[data-dia]").forEach(function (inp) {
+        registro[inp.dataset.dia] = inp.value.trim() || "libre";
+    });
+
+    if (horarioEditandoIdx !== null) {
+        horariosLista[horarioEditandoIdx] = registro;
+    } else {
+        horariosLista.push(registro);
+    }
+
+    cerrarModal("modal-horario");
+    renderizarHorarios();
+});
+
+/* ── Botón nuevo horario ── */
+document.getElementById("btn-agregar-horario").addEventListener("click", function () {
+    abrirModalHorario();
+});
+    
 
     /* =====================================================
        MODALES — inicializar cierre

@@ -1,443 +1,1319 @@
 <!DOCTYPE html>
-<html lang="es">
+<html class="dark" lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Punto de Venta</title>
-    <link rel="stylesheet" href="../css/variables.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/empleado.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Punto de Venta · Dairy King</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: '#131315',
+            surface: '#131315',
+            'surface-container': '#201f21',
+            'surface-container-low': '#1c1b1d',
+            'surface-container-highest': '#353437',
+            'surface-variant': '#353437',
+            'surface-bright': '#39393b',
+            primary: '#ffb2bf',
+            'primary-container': '#ff4d80',
+            'on-primary-container': '#5a0022',
+            'secondary-container': '#00f1fe',
+            'on-surface': '#e5e1e4',
+            'on-surface-variant': '#e4bdc2',
+            'outline-variant': '#5b3f44',
+            error: '#ffb4ab',
+            'error-container': '#93000a',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Sora', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background-color: #131315;
+      color: #e5e1e4;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+      vertical-align: middle;
+      user-select: none;
+    }
+
+    /* ── MODAL SYSTEM ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .modal-overlay.oculto { display: none; }
+
+    .modal-box {
+      background: #201f21;
+      border: 1px solid #5b3f44;
+      border-radius: 20px;
+      padding: 28px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+    .modal-turno-titulo {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #ffb2bf;
+      margin: 0 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-turno-desc {
+      font-size: 0.875rem;
+      color: #e4bdc2;
+      margin: 0 0 20px;
+      line-height: 1.55;
+    }
+    .modal-turno-acciones {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .modal-turno-resumen {
+      background: #1c1b1d;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px 0;
+      font-size: 0.85rem;
+      color: #e4bdc2;
+    }
+    .btn-confirmar-turno {
+      background: #ffb2bf;
+      color: #5a0022;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-confirmar-turno:hover { opacity: 0.88; }
+    .btn-cancelar-turno {
+      background: transparent;
+      color: #e4bdc2;
+      border: 1px solid #5b3f44;
+      border-radius: 12px;
+      padding: 10px 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-cancelar-turno:hover { background: #353437; }
+
+    /* ── SPINNER / CARGANDO ── */
+    .spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(90,0,34,0.3);
+      border-top-color: #5a0022;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .cargando .btn-texto { display: none; }
+    .cargando .spinner { display: inline-block; }
+
+    /* ── TURNO BADGE ── */
+    .turno-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #353437;
+      border: 1px solid #5b3f44;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #e4bdc2;
+      transition: all 0.3s;
+    }
+    .turno-badge.activo {
+      background: rgba(0,241,254,0.1);
+      border-color: rgba(0,241,254,0.5);
+      color: #00f1fe;
+    }
+    .turno-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #5b3f44;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+    .turno-badge.activo .turno-dot {
+      background: #00f1fe;
+      box-shadow: 0 0 6px #00f1fe;
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── CATALOG PANEL ── */
+    .catalogo-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #131315;
+      border-right: 1px solid #353437;
+      padding: 14px 16px;
+      gap: 12px;
+    }
+
+    /* ── BUSCADOR ── */
+    .buscador-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .buscador-icono {
+      position: absolute;
+      left: 13px;
+      color: #5b3f44;
+      pointer-events: none;
+      font-size: 20px;
+    }
+    .buscador-input {
+      width: 100%;
+      background: #201f21;
+      border: 1px solid #5b3f44;
+      border-radius: 12px;
+      padding: 10px 38px 10px 42px;
+      color: #e5e1e4;
+      font-size: 0.9rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .buscador-input::placeholder { color: #5b3f44; }
+    .buscador-input:focus { border-color: #ffb2bf; }
+    .buscador-clear {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      color: #e4bdc2;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      border-radius: 6px;
+    }
+    .buscador-clear:hover { background: #353437; }
+
+    /* ── CHIPS (JS-generated) ── */
+    .chips-categorias {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      background: #201f21;
+      border: 1px solid #5b3f44;
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #e4bdc2;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .chip:hover { border-color: #ffb2bf; color: #ffb2bf; }
+    .chip.activo {
+      background: #ffb2bf;
+      border-color: #ffb2bf;
+      color: #5a0022;
+      font-weight: 700;
+    }
+
+    /* ── PRODUCT GRID (JS-generated) ── */
+    .productos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+      gap: 12px;
+      overflow-y: auto;
+      padding-bottom: 8px;
+    }
+    .producto-card {
+      background: #201f21;
+      border: 1px solid #353437;
+      border-radius: 16px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      position: relative;
+      overflow: hidden;
+    }
+    .producto-card:hover {
+      border-color: #ffb2bf;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(255,178,191,0.12);
+    }
+    .producto-card-categoria {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #00f1fe;
+    }
+    .producto-card-nombre {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #e5e1e4;
+      line-height: 1.3;
+    }
+    .producto-card-tamanos {
+      font-size: 0.74rem;
+      color: #e4bdc2;
+    }
+    .producto-card-precio {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffb2bf;
+      margin-top: 4px;
+    }
+    .producto-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #ff4d80;
+      color: white;
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 0.64rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .sin-resultados {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 48px 20px;
+      color: #5b3f44;
+      font-size: 0.9rem;
+    }
+
+    /* ── ORDER PANEL ── */
+    .orden-panel {
+      display: flex;
+      flex-direction: column;
+      background: #1c1b1d;
+      overflow: hidden;
+    }
+    .orden-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid #353437;
+      flex-shrink: 0;
+    }
+    .orden-header h2 {
+      font-family: 'Sora', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #e5e1e4;
+      margin: 0;
+    }
+    .btn-limpiar {
+      background: transparent;
+      border: 1px solid #5b3f44;
+      border-radius: 8px;
+      color: #e4bdc2;
+      font-size: 0.76rem;
+      font-weight: 500;
+      padding: 5px 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-limpiar:hover { border-color: #ffb4ab; color: #ffb4ab; }
+
+    /* ── ORDER ITEMS (JS-generated) ── */
+    .orden-items {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .orden-vacia {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 40px 20px;
+      color: #5b3f44;
+      text-align: center;
+      flex: 1;
+      min-height: 120px;
+    }
+    .orden-vacia-icono { font-size: 2.5rem; }
+    .orden-vacia p { font-size: 0.84rem; margin: 0; }
+
+    .orden-item {
+      background: #201f21;
+      border: 1px solid #353437;
+      border-radius: 12px;
+      padding: 10px 12px;
+      transition: border-color 0.2s;
+    }
+    .orden-item:hover { border-color: #5b3f44; }
+    .orden-item-fila-principal {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .orden-item-info { flex: 1; min-width: 0; }
+    .orden-item-nombre {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #e5e1e4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .orden-item-detalle { font-size: 0.74rem; color: #e4bdc2; }
+    .orden-item-tamano { font-size: 0.71rem; color: #00f1fe; font-weight: 500; }
+    .orden-item-controles {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .btn-cantidad {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid #5b3f44;
+      background: #353437;
+      color: #e5e1e4;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .btn-cantidad.btn-menos:hover { border-color: #ffb4ab; color: #ffb4ab; }
+    .btn-cantidad.btn-mas:hover { border-color: #ffb2bf; color: #ffb2bf; }
+    .cantidad-num {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #e5e1e4;
+      min-width: 20px;
+      text-align: center;
+    }
+    .orden-item-subtotal {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #ffb2bf;
+      min-width: 54px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .orden-item-comentario {
+      font-size: 0.74rem;
+      color: #e4bdc2;
+      font-style: italic;
+      margin-top: 5px;
+      padding-top: 5px;
+      border-top: 1px solid #353437;
+    }
+
+    /* ── NOTA ORDEN ── */
+    .comentario-orden-seccion {
+      padding: 8px 14px;
+      border-top: 1px solid #353437;
+      flex-shrink: 0;
+    }
+    .comentario-label {
+      font-size: 0.73rem;
+      font-weight: 600;
+      color: #e4bdc2;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+    .comentario-textarea {
+      width: 100%;
+      background: #201f21;
+      border: 1px solid #5b3f44;
+      border-radius: 8px;
+      color: #e5e1e4;
+      font-size: 0.82rem;
+      font-family: 'Inter', sans-serif;
+      padding: 8px 10px;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .comentario-textarea::placeholder { color: #5b3f44; }
+    .comentario-textarea:focus { border-color: #ffb2bf; }
+
+    /* ── TOTALES ── */
+    .orden-totales {
+      padding: 10px 14px;
+      border-top: 1px solid #353437;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .orden-total-fila {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.84rem;
+      color: #e4bdc2;
+    }
+    .orden-total-fila.grande {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #e5e1e4;
+      padding-top: 6px;
+      border-top: 1px solid #353437;
+      margin-top: 2px;
+    }
+
+    /* ── PROMO ── */
+    .btn-secundario {
+      background: transparent;
+      border: 1px solid #5b3f44;
+      border-radius: 10px;
+      color: #e4bdc2;
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-secundario:hover { border-color: #ffb2bf; color: #ffb2bf; }
+
+    /* ── MÉTODO PAGO ── */
+    .metodo-pago-seccion {
+      padding: 10px 14px;
+      border-top: 1px solid #353437;
+      flex-shrink: 0;
+    }
+    .metodo-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #e4bdc2;
+      margin: 0 0 7px;
+    }
+    .metodo-botones { display: flex; gap: 7px; }
+    .btn-metodo {
+      flex: 1;
+      background: #201f21;
+      border: 1px solid #5b3f44;
+      border-radius: 10px;
+      color: #e4bdc2;
+      font-size: 0.84rem;
+      font-weight: 500;
+      padding: 9px 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-metodo:hover { border-color: #ffb2bf; }
+    .btn-metodo.activo {
+      background: rgba(255,178,191,0.13);
+      border-color: #ffb2bf;
+      color: #ffb2bf;
+      font-weight: 700;
+    }
+    .metodo-icono { font-size: 1rem; }
+    .btn-tipo {
+      flex: 1;
+      background: #201f21;
+      border: 1px solid #5b3f44;
+      border-radius: 10px;
+      color: #e4bdc2;
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-tipo.activo {
+      background: rgba(255,178,191,0.13);
+      border-color: #ffb2bf;
+      color: #ffb2bf;
+      font-weight: 700;
+    }
+    .tipo-tarjeta-seccion { margin-top: 10px; }
+    .efectivo-seccion { margin-top: 10px; }
+    .efectivo-row { display: flex; gap: 10px; align-items: flex-end; }
+    .campo-grupo { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .campo-grupo label { font-size: 0.73rem; font-weight: 600; color: #e4bdc2; }
+    .campo-grupo input {
+      background: #201f21;
+      border: 1px solid #5b3f44;
+      border-radius: 8px;
+      color: #e5e1e4;
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      padding: 8px 11px;
+      outline: none;
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+    .campo-grupo input:focus { border-color: #ffb2bf; }
+    .cambio-display { display: flex; flex-direction: column; gap: 3px; align-items: center; flex-shrink: 0; }
+    .cambio-label { font-size: 0.7rem; font-weight: 600; color: #e4bdc2; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cambio-valor { font-size: 1.05rem; font-weight: 700; color: #00f1fe; }
+    .cambio-valor.negativo { color: #ffb4ab; }
+
+    /* ── BTN CONFIRMAR ── */
+    .btn-confirmar {
+      margin: 10px 14px 12px;
+      padding: 14px;
+      background: #ffb2bf;
+      color: #5a0022;
+      border: none;
+      border-radius: 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: 'Sora', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 48px;
+      flex-shrink: 0;
+    }
+    .btn-confirmar:hover { background: #ff9eb0; box-shadow: 0 8px 20px rgba(255,178,191,0.28); }
+    .btn-confirmar.cargando .btn-texto { display: none; }
+    .btn-confirmar.cargando .spinner { display: inline-block; }
+    .btn-confirmar .spinner { border-color: rgba(90,0,34,0.3); border-top-color: #5a0022; }
+
+    /* ── MODAL TAMAÑO ── */
+    .modal-tamano-card {
+      background: #201f21;
+      border: 1px solid #5b3f44;
+      border-radius: 20px;
+      padding: 24px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+    .modal-tamano-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+    .modal-tamano-categoria {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #00f1fe;
+      margin: 0 0 4px;
+    }
+    .modal-tamano-header h3 {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #e5e1e4;
+      margin: 0;
+    }
+    .modal-tamano-label {
+      font-size: 0.76rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #e4bdc2;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .btn-modal-cerrar {
+      background: #353437;
+      border: none;
+      border-radius: 8px;
+      color: #e4bdc2;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .btn-modal-cerrar:hover { background: #5b3f44; }
+
+    /* ── TAMAÑOS (JS-generated) ── */
+    .tamanos-opciones { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .opcion-tamano {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1c1b1d;
+      border: 2px solid #353437;
+      border-radius: 12px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .opcion-tamano:hover { border-color: #ffb2bf; }
+    .opcion-tamano.seleccionado { border-color: #ffb2bf; background: rgba(255,178,191,0.08); }
+    .opcion-tamano-nombre { font-size: 0.9rem; font-weight: 600; color: #e5e1e4; }
+    .opcion-tamano.seleccionado .opcion-tamano-nombre { color: #ffb2bf; }
+    .opcion-tamano-precio { font-size: 0.95rem; font-weight: 700; color: #e4bdc2; }
+    .opcion-tamano.seleccionado .opcion-tamano-precio { color: #ffb2bf; }
+
+    .btn-confirmar-tamano {
+      width: 100%;
+      background: #ffb2bf;
+      color: #5a0022;
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-confirmar-tamano:hover { background: #ff9eb0; }
+    .mcom-precio { font-size: 0.95rem; font-weight: 700; color: #ffb2bf; margin: 4px 0 0; }
+    .campo-comentario { margin-top: 12px; }
+
+    /* ── TICKET ── */
+    .modal-ticket-wrapper {
+      background: #201f21;
+      border: 1px solid #5b3f44;
+      border-radius: 20px;
+      padding: 20px;
+      width: 100%;
+      max-width: 380px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+    .modal-ticket {
+      background: #ffffff;
+      color: #1a1a1a;
+      padding: 20px 16px;
+      border-radius: 8px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.8rem;
+      margin-bottom: 14px;
+    }
+    .ticket-negocio { text-align: center; margin-bottom: 8px; }
+    .ticket-negocio-nombre { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+    .ticket-negocio-razon,
+    .ticket-negocio-rfc,
+    .ticket-negocio-dir,
+    .ticket-negocio-tel { font-size: 0.75rem; line-height: 1.5; }
+    .ticket-separador { text-align: center; color: #999; margin: 7px 0; font-size: 0.72rem; }
+    .ticket-meta { font-size: 0.78rem; }
+    .ticket-meta-fila { display: flex; justify-content: space-between; margin-bottom: 2px; }
+    .ticket-columnas-header {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 4px;
+      font-weight: 700;
+      font-size: 0.7rem;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .ticket-items { font-size: 0.78rem; }
+    .ticket-item-fila { display: grid; grid-template-columns: 1fr auto auto auto; gap: 4px; margin-bottom: 2px; padding: 2px 0; }
+    .ticket-item-principal { display: contents; }
+    .ticket-item-nota { grid-column: 1 / -1; font-size: 0.7rem; color: #555; font-style: italic; padding-left: 8px; }
+    .ticket-nota-orden { font-size: 0.78rem; margin: 4px 0; }
+    .ticket-nota-label { font-weight: 700; }
+    .ticket-totales { border-top: 1px solid #ccc; margin-top: 8px; padding-top: 8px; }
+    .ticket-fila { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 3px; }
+    .ticket-fila-total { font-weight: 700; font-size: 0.95rem; border-top: 1px solid #ccc; padding-top: 4px; margin-top: 4px; }
+    .ticket-pago { margin-top: 8px; padding-top: 8px; border-top: 1px solid #ccc; }
+    .ticket-cambio-resaltado { font-weight: 700; font-size: 0.88rem; }
+    .ticket-factura-seccion { display: flex; gap: 12px; align-items: flex-start; margin-top: 8px; }
+    .ticket-factura-qr img { width: 70px; height: 70px; }
+    .ticket-factura-info { font-size: 0.72rem; }
+    .ticket-factura-titulo { font-weight: 700; margin: 0 0 2px; }
+    .ticket-factura-url { margin: 0; color: #666; }
+    .ticket-factura-url-texto { font-weight: 700; margin: 0; }
+    .ticket-factura-codigo-label { margin: 4px 0 0; color: #666; }
+    .ticket-factura-codigo { font-weight: 700; font-size: 0.88rem; margin: 0; }
+    .ticket-pie { text-align: center; margin-top: 10px; font-size: 0.7rem; color: #555; }
+    .ticket-pie p { margin: 2px 0; }
+    .ticket-acciones { display: flex; gap: 10px; }
+    .btn-imprimir {
+      flex: 1;
+      background: #ffb2bf;
+      color: #5a0022;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-imprimir:hover { background: #ff9eb0; }
+    .btn-listo {
+      flex: 1;
+      background: #353437;
+      color: #e5e1e4;
+      border: none;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-listo:hover { background: #5b3f44; }
+
+    /* ── PRINT ── */
+    @media print {
+      body > *:not(#modal-confirmacion) { display: none !important; }
+      #modal-confirmacion {
+        display: block !important;
+        position: static !important;
+        background: none !important;
+        padding: 0 !important;
+      }
+      .modal-ticket-wrapper {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        max-height: none !important;
+      }
+      .ticket-acciones { display: none !important; }
+      .modal-ticket { box-shadow: none !important; border-radius: 0 !important; }
+    }
+
+    /* ── SCROLLBARS ── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #353437; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #5b3f44; }
+
+    /* ── MODAL TURNO inputs ── */
+    #input-fondo-inicial:focus,
+    #input-clave-promo:focus,
+    #select-promo:focus { border-color: #ffb2bf !important; }
+  </style>
 </head>
+
 <body data-roles-permitidos="empleado,gerente">
 
-    <header class="header">
-        <div class="header-left">
-            <div class="header-logo">
-                <span class="logo-dot"></span>
-                <span class="logo-nombre">Punto de Venta</span>
-            </div>
-            <div class="header-fecha" id="header-fecha"></div>
-        </div>
-        <div class="header-right">
-            <div class="header-hora" id="header-hora"></div>
-            <div class="turno-badge" id="turno-badge">
-                <span class="turno-dot"></span>
-                <span id="turno-label">Sin turno</span>
-            </div>
-            <button class="btn-abrir-turno" id="btn-abrir-turno">▶ Abrir turno</button>
-            <button class="btn-cerrar-turno" id="btn-cerrar-turno" style="display:none">◼ Cerrar turno</button>
-            <div id="caja-indicator" style="display:none;background:#000000;border:1px solid #000000;border-radius:8px;padding:4px 12px;font-size:0.82rem;color:#4ade80;font-weight:600;letter-spacing:0.02em">
-                💵 Caja: <span id="caja-monto">$0.00</span>
-            </div>
-            <button class="btn-cambiar-panel" id="btn-cambiar-panel" style="display:none">⚙ Panel admin</button>
-            <span class="usuario-info"><span id="nombre-usuario"></span> · <span id="rol-usuario"></span></span>
-            <button class="btn-salir" onclick="sessionStorage.removeItem('sesion'); window.location.href='index.html'">Salir</button>
-        </div>
-    </header>
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <header style="background:#201f21;border-bottom:1px solid #353437;padding:0 18px;height:54px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-shrink:0;z-index:10;">
 
-    <!-- MODAL: Fondo de caja al abrir turno -->
-    <div class="modal-overlay oculto" id="modal-abrir-turno">
-        <div class="modal-box modal-turno">
-            <h2 class="modal-turno-titulo">▶ Abrir turno</h2>
-            <p class="modal-turno-desc">Ingresa el monto inicial en caja (fondo de efectivo).</p>
-            <div style="margin: 16px 0;">
-                <label style="font-size:0.78rem;font-weight:600;color:#000000;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Fondo inicial</label>
-                <div style="display:flex;align-items:center;gap:8px">
-                    <span style="font-size:1.1rem;font-weight:700">$</span>
-                    <input type="number" id="input-fondo-inicial" min="0" step="0.50" placeholder="0.00"
-                        style="flex:1;padding:12px 14px;border:1px solid #000000;border-radius:8px;font-size:1.1rem;font-weight:600;outline:none">
-                </div>
-                <p style="font-size:0.75rem;color:#000000;margin-top:6px">Este monto es el efectivo con el que arranca la caja. Puede ser $0.</p>
-            </div>
-            <div class="modal-turno-acciones">
-                <button class="btn-confirmar-turno" id="btn-confirmar-abrir-turno">
-                    <span class="btn-texto">Abrir turno</span>
-                    <span class="spinner"></span>
-                </button>
-            </div>
-        </div>
+    <!-- LEFT -->
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:28px;height:28px;background:#ffb2bf;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🍦</div>
+        <span style="font-family:'Sora',sans-serif;font-size:0.88rem;font-weight:700;color:#e5e1e4">Dairy King</span>
+        <span style="font-size:0.78rem;color:#5b3f44;margin:0 2px">·</span>
+        <span style="font-size:0.78rem;color:#e4bdc2;font-weight:500">POS</span>
+      </div>
+      <div id="header-fecha" style="font-size:0.76rem;color:#e4bdc2;padding:3px 10px;background:#353437;border-radius:6px"></div>
     </div>
 
-    <!-- MODAL: Autorización de promoción por gerente/dueño -->
-    <!-- El empleado elige la promo, ingresa la clave del supervisor y se aplica -->
-    <div class="modal-overlay oculto" id="modal-promo">
-        <div class="modal-box modal-turno" style="max-width:420px">
-            <h2 class="modal-turno-titulo">🏷 Aplicar promoción</h2>
-            <p class="modal-turno-desc">Selecciona la promoción e ingresa la contraseña del gerente o dueño para autorizar.</p>
+    <!-- RIGHT -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div id="header-hora" style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:#00f1fe;letter-spacing:0.03em"></div>
 
-            <!-- Lista de promociones disponibles -->
-            <div style="margin-bottom:14px">
-                <label style="font-size:0.75rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Promoción</label>
-                <select id="select-promo" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:0.9rem;outline:none">
-                    <option value="">Selecciona una promoción...</option>
-                </select>
-            </div>
+      <div class="turno-badge" id="turno-badge">
+        <span class="turno-dot"></span>
+        <span id="turno-label">Sin turno</span>
+      </div>
 
-            <!-- Contraseña del supervisor -->
-            <div style="margin-bottom:6px">
-                <label style="font-size:0.75rem;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Contraseña del supervisor</label>
-                <input type="password" id="input-clave-promo" placeholder="Ingresa la clave del gerente o dueño"
-                    style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:0.9rem;outline:none">
-            </div>
-            <p id="error-promo" style="font-size:0.8rem;color:#dc2626;min-height:18px;margin-bottom:8px"></p>
+      <button id="btn-abrir-turno" style="background:rgba(255,178,191,0.12);border:1px solid rgba(255,178,191,0.5);border-radius:10px;color:#ffb2bf;font-size:0.78rem;font-weight:600;padding:5px 13px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'Inter',sans-serif;transition:all 0.2s">
+        <span class="material-symbols-outlined" style="font-size:15px">play_circle</span>
+        Abrir turno
+      </button>
 
-            <div class="modal-turno-acciones">
-                <button class="btn-confirmar-turno" id="btn-confirmar-promo">
-                    <span class="btn-texto">Autorizar y aplicar</span>
-                    <span class="spinner"></span>
-                </button>
-                <button class="btn-cancelar-turno" id="btn-cancelar-promo">Cancelar</button>
-            </div>
+      <button id="btn-cerrar-turno" style="display:none;background:rgba(255,180,171,0.12);border:1px solid rgba(255,180,171,0.5);border-radius:10px;color:#ffb4ab;font-size:0.78rem;font-weight:600;padding:5px 13px;cursor:pointer;align-items:center;gap:5px;font-family:'Inter',sans-serif;transition:all 0.2s">
+        <span class="material-symbols-outlined" style="font-size:15px">stop_circle</span>
+        Cerrar turno
+      </button>
+
+      <div id="caja-indicator" style="display:none;background:#1c1b1d;border:1px solid rgba(0,241,254,0.3);border-radius:8px;padding:4px 12px;font-size:0.8rem;color:#00f1fe;font-weight:600">
+        💵 Caja: <span id="caja-monto">$0.00</span>
+      </div>
+
+      <button id="btn-cambiar-panel" style="display:none;background:#353437;border:1px solid #5b3f44;border-radius:10px;color:#e4bdc2;font-size:0.78rem;font-weight:600;padding:5px 13px;cursor:pointer;align-items:center;gap:5px;font-family:'Inter',sans-serif">
+        <span class="material-symbols-outlined" style="font-size:15px">admin_panel_settings</span>
+        Panel admin
+      </button>
+
+      <!-- Usuario -->
+      <div style="display:flex;align-items:center;gap:8px;padding-left:10px;border-left:1px solid #353437">
+        <div style="width:26px;height:26px;background:#353437;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <span class="material-symbols-outlined" style="font-size:15px;color:#e4bdc2">person</span>
         </div>
+        <div style="display:flex;flex-direction:column;line-height:1.25">
+          <span id="nombre-usuario" style="font-size:0.8rem;font-weight:600;color:#e5e1e4"></span>
+          <span id="rol-usuario" style="font-size:0.68rem;color:#e4bdc2;text-transform:capitalize"></span>
+        </div>
+        <button onclick="sessionStorage.removeItem('sesion'); window.location.href='index.html'"
+          style="background:none;border:1px solid #5b3f44;border-radius:8px;color:#e4bdc2;padding:4px 9px;font-size:0.72rem;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s"
+          onmouseover="this.style.borderColor='#ffb4ab';this.style.color='#ffb4ab'"
+          onmouseout="this.style.borderColor='#5b3f44';this.style.color='#e4bdc2'">
+          Salir
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════ MODAL: Abrir turno ═══════════════ -->
+  <div class="modal-overlay oculto" id="modal-abrir-turno">
+    <div class="modal-box modal-turno">
+      <h2 class="modal-turno-titulo">
+        <span class="material-symbols-outlined" style="font-size:20px">play_circle</span>
+        Abrir turno
+      </h2>
+      <p class="modal-turno-desc">Ingresa el monto inicial en caja (fondo de efectivo).</p>
+      <div style="margin:16px 0">
+        <label style="font-size:0.73rem;font-weight:600;color:#e4bdc2;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:8px">Fondo inicial</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:1.2rem;font-weight:700;color:#ffb2bf">$</span>
+          <input type="number" id="input-fondo-inicial" min="0" step="0.50" placeholder="0.00"
+            style="flex:1;padding:12px 14px;background:#1c1b1d;border:1px solid #5b3f44;border-radius:10px;font-size:1.1rem;font-weight:600;color:#e5e1e4;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s">
+        </div>
+        <p style="font-size:0.74rem;color:#e4bdc2;margin-top:6px">Este monto es el efectivo con el que arranca la caja. Puede ser $0.</p>
+      </div>
+      <div class="modal-turno-acciones">
+        <button class="btn-confirmar-turno" id="btn-confirmar-abrir-turno">
+          <span class="btn-texto">Abrir turno</span>
+          <span class="spinner"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MODAL: Promo ═══════════════ -->
+  <div class="modal-overlay oculto" id="modal-promo">
+    <div class="modal-box modal-turno" style="max-width:420px">
+      <h2 class="modal-turno-titulo">
+        <span class="material-symbols-outlined" style="font-size:20px">local_offer</span>
+        Aplicar promoción
+      </h2>
+      <p class="modal-turno-desc">Selecciona la promoción e ingresa la contraseña del gerente o dueño para autorizar.</p>
+      <div style="margin-bottom:14px">
+        <label style="font-size:0.73rem;font-weight:600;color:#e4bdc2;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Promoción</label>
+        <select id="select-promo" style="width:100%;padding:10px 12px;background:#1c1b1d;border:1px solid #5b3f44;border-radius:10px;font-size:0.9rem;color:#e5e1e4;font-family:'Inter',sans-serif;outline:none">
+          <option value="">Selecciona una promoción...</option>
+        </select>
+      </div>
+      <div style="margin-bottom:6px">
+        <label style="font-size:0.73rem;font-weight:600;color:#e4bdc2;text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:6px">Contraseña del supervisor</label>
+        <input type="password" id="input-clave-promo" placeholder="Ingresa la clave del gerente o dueño"
+          style="width:100%;padding:10px 12px;background:#1c1b1d;border:1px solid #5b3f44;border-radius:10px;font-size:0.9rem;color:#e5e1e4;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s">
+      </div>
+      <p id="error-promo" style="font-size:0.8rem;color:#ffb4ab;min-height:18px;margin-bottom:8px"></p>
+      <div class="modal-turno-acciones">
+        <button class="btn-confirmar-turno" id="btn-confirmar-promo">
+          <span class="btn-texto">Autorizar y aplicar</span>
+          <span class="spinner"></span>
+        </button>
+        <button class="btn-cancelar-turno" id="btn-cancelar-promo">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MODAL: Cierre de turno ═══════════════ -->
+  <div class="modal-overlay oculto" id="modal-cierre-turno">
+    <div class="modal-box modal-turno" style="max-width:720px;width:95vw;max-height:90vh;overflow-y:auto">
+      <h2 class="modal-turno-titulo">
+        <span class="material-symbols-outlined" style="font-size:20px">stop_circle</span>
+        Corte de caja
+      </h2>
+      <p class="modal-turno-desc">Revisa el resumen antes de cerrar. Se descargará el Excel del día automáticamente.</p>
+      <div class="modal-turno-resumen" id="resumen-cierre"></div>
+      <div class="modal-turno-acciones">
+        <button class="btn-confirmar-turno" id="btn-confirmar-cierre">
+          <span class="btn-texto">Cerrar turno</span>
+          <span class="spinner"></span>
+        </button>
+        <button class="btn-cancelar-turno" id="btn-cancelar-cierre">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MODAL: Cierre de mes ═══════════════ -->
+  <div class="modal-overlay oculto" id="modal-cierre-mes">
+    <div class="modal-box modal-turno">
+      <h2 class="modal-turno-titulo">
+        <span class="material-symbols-outlined" style="font-size:20px">calendar_month</span>
+        Cierre de mes
+      </h2>
+      <p class="modal-turno-desc">Hay ventas del mes anterior guardadas. Descarga el reporte mensual antes de limpiar la base de datos.</p>
+      <div class="modal-turno-acciones">
+        <button class="btn-confirmar-turno" id="btn-descargar-mes">
+          <span class="btn-texto">
+            <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">download</span>
+            Descargar Excel mensual y limpiar
+          </span>
+          <span class="spinner"></span>
+        </button>
+        <button class="btn-cancelar-turno" id="btn-saltar-mes">Recordármelo después</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MAIN LAYOUT ═══════════════ -->
+  <div class="layout">
+
+    <!-- CATÁLOGO -->
+    <div class="catalogo-panel">
+      <div class="buscador-wrapper">
+        <span class="material-symbols-outlined buscador-icono">search</span>
+        <input type="text" id="buscador" class="buscador-input" placeholder="Buscar producto..." autocomplete="off">
+        <button class="buscador-clear" id="buscador-clear" style="display:none">
+          <span class="material-symbols-outlined" style="font-size:18px">close</span>
+        </button>
+      </div>
+      <div class="chips-categorias" id="chips-categorias"></div>
+      <div class="productos-grid" id="productos-grid"></div>
     </div>
 
-    <!-- MODAL: Confirmar cierre de turno -->
-    <div class="modal-overlay oculto" id="modal-cierre-turno">
-        <div class="modal-box modal-turno" style="max-width:720px;width:95vw;max-height:90vh;overflow-y:auto">
-            <h2 class="modal-turno-titulo">◼ Corte de caja</h2>
-            <p class="modal-turno-desc">Revisa el resumen antes de cerrar. Se descargará el Excel del día automáticamente.</p>
-            <div class="modal-turno-resumen" id="resumen-cierre"></div>
-            <div class="modal-turno-acciones">
-                <button class="btn-confirmar-turno" id="btn-confirmar-cierre">
-                    <span class="btn-texto">Cerrar turno</span>
-                    <span class="spinner"></span>
-                </button>
-                <button class="btn-cancelar-turno" id="btn-cancelar-cierre">Cancelar</button>
-            </div>
+    <!-- ORDEN -->
+    <div class="orden-panel">
+
+      <div class="orden-header">
+        <h2>Orden actual</h2>
+        <button class="btn-limpiar" id="btn-limpiar-orden">
+          <span class="material-symbols-outlined" style="font-size:14px">delete_sweep</span>
+          Limpiar
+        </button>
+      </div>
+
+      <div class="orden-items" id="orden-items">
+        <div class="orden-vacia" id="orden-vacia">
+          <span class="material-symbols-outlined orden-vacia-icono" style="font-size:42px;color:#5b3f44">shopping_basket</span>
+          <p>Agrega productos desde el catálogo</p>
         </div>
+      </div>
+
+      <!-- Nota general -->
+      <div class="comentario-orden-seccion">
+        <label for="comentario-orden" class="comentario-label">
+          <span class="material-symbols-outlined" style="font-size:14px">chat_bubble</span>
+          Nota de la orden
+        </label>
+        <textarea id="comentario-orden" class="comentario-textarea" placeholder="Ej: cliente con alergia a nueces, mesa 4..." rows="2"></textarea>
+      </div>
+
+      <!-- Totales -->
+      <div class="orden-totales">
+        <div class="orden-total-fila">
+          <span>Subtotal</span>
+          <span id="subtotal">$0.00</span>
+        </div>
+        <div class="orden-total-fila" id="fila-descuento" style="display:none;color:#ffb4ab">
+          <span id="label-descuento">Descuento</span>
+          <span id="monto-descuento">−$0.00</span>
+        </div>
+        <div class="orden-total-fila grande">
+          <span>Total</span>
+          <span id="total-orden">$0.00</span>
+        </div>
+      </div>
+
+      <!-- Promo -->
+      <div id="promo-seccion" style="padding:4px 14px 8px">
+        <button class="btn-secundario" id="btn-aplicar-promo" style="width:100%">
+          <span class="material-symbols-outlined" style="font-size:15px">local_offer</span>
+          Aplicar promoción
+        </button>
+        <div id="promo-activa-info" style="display:none;background:rgba(0,241,254,0.07);border:1px solid rgba(0,241,254,0.28);border-radius:10px;padding:8px 12px;margin-top:6px;font-size:0.82rem;justify-content:space-between;align-items:center">
+          <span id="promo-activa-nombre" style="color:#00f1fe;font-weight:600"></span>
+          <button id="btn-quitar-promo" style="background:none;border:none;color:#ffb4ab;cursor:pointer;font-size:0.76rem;font-weight:600;font-family:'Inter',sans-serif">✕ Quitar</button>
+        </div>
+      </div>
+
+      <!-- Método de pago -->
+      <div class="metodo-pago-seccion">
+        <p class="metodo-label">Método de pago</p>
+        <div class="metodo-botones">
+          <button class="btn-metodo activo" data-metodo="efectivo">
+            <span class="metodo-icono">💵</span> Efectivo
+          </button>
+          <button class="btn-metodo" data-metodo="tarjeta">
+            <span class="metodo-icono">💳</span> Tarjeta
+          </button>
+        </div>
+
+        <div class="tipo-tarjeta-seccion" id="tipo-tarjeta-seccion" style="display:none">
+          <p class="metodo-label" style="margin-top:10px">Tipo de tarjeta</p>
+          <div class="metodo-botones">
+            <button class="btn-tipo activo" data-tipo="debito">Débito</button>
+            <button class="btn-tipo" data-tipo="credito">Crédito</button>
+          </div>
+        </div>
+
+        <div class="efectivo-seccion" id="efectivo-seccion">
+          <div class="efectivo-row">
+            <div class="campo-grupo">
+              <label for="monto-recibido">Con cuánto paga</label>
+              <input type="number" id="monto-recibido" placeholder="0.00" min="0" step="0.50">
+            </div>
+            <div class="cambio-display">
+              <span class="cambio-label">Cambio</span>
+              <span class="cambio-valor" id="cambio-valor">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-confirmar" id="btn-confirmar">
+        <span class="btn-texto" style="display:flex;align-items:center;gap:7px">
+          <span class="material-symbols-outlined" style="font-size:20px">check_circle</span>
+          Confirmar venta
+        </span>
+        <span class="spinner"></span>
+      </button>
+
+    </div><!-- /orden-panel -->
+  </div><!-- /layout -->
+
+  <!-- ═══════════════ MODAL: Seleccionar tamaño ═══════════════ -->
+  <div class="modal-overlay oculto" id="modal-tamano">
+    <div class="modal-tamano-card">
+      <div class="modal-tamano-header">
+        <div>
+          <p class="modal-tamano-categoria" id="mtam-categoria"></p>
+          <h3 id="mtam-nombre"></h3>
+        </div>
+        <button class="btn-modal-cerrar" id="btn-cerrar-modal-tamano">
+          <span class="material-symbols-outlined" style="font-size:18px">close</span>
+        </button>
+      </div>
+      <p class="modal-tamano-label">Selecciona el tamaño</p>
+      <div class="tamanos-opciones" id="tamanos-opciones"></div>
+      <div class="campo-comentario">
+        <label for="comentario-producto" class="modal-tamano-label">
+          Nota del producto <span style="color:#5b3f44;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span>
+        </label>
+        <textarea id="comentario-producto" class="comentario-textarea" placeholder="Ej: sin azúcar, extra shot, sin hielo..." rows="2"></textarea>
+      </div>
+      <button class="btn-confirmar-tamano" id="btn-confirmar-tamano">
+        <span class="material-symbols-outlined" style="font-size:16px">add_shopping_cart</span>
+        Agregar a la orden
+      </button>
     </div>
+  </div>
 
-    <!-- MODAL: Cierre de mes -->
-    <div class="modal-overlay oculto" id="modal-cierre-mes">
-        <div class="modal-box modal-turno">
-            <h2 class="modal-turno-titulo">📅 Cierre de mes</h2>
-            <p class="modal-turno-desc">Hay ventas del mes anterior guardadas. Descarga el reporte mensual antes de limpiar la base de datos.</p>
-            <div class="modal-turno-acciones">
-                <button class="btn-confirmar-turno" id="btn-descargar-mes">
-                    <span class="btn-texto">⬇ Descargar Excel mensual y limpiar</span>
-                    <span class="spinner"></span>
-                </button>
-                <button class="btn-cancelar-turno" id="btn-saltar-mes">Recordármelo después</button>
-            </div>
+  <!-- ═══════════════ MODAL: Comentario sin tamaño ═══════════════ -->
+  <div class="modal-overlay oculto" id="modal-comentario-simple">
+    <div class="modal-tamano-card">
+      <div class="modal-tamano-header">
+        <div>
+          <p class="modal-tamano-categoria" id="mcom-categoria"></p>
+          <h3 id="mcom-nombre"></h3>
+          <p class="mcom-precio" id="mcom-precio"></p>
         </div>
+        <button class="btn-modal-cerrar" id="btn-cerrar-modal-comentario">
+          <span class="material-symbols-outlined" style="font-size:18px">close</span>
+        </button>
+      </div>
+      <div class="campo-comentario">
+        <label for="comentario-producto-simple" class="modal-tamano-label">
+          Nota del producto <span style="color:#5b3f44;font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span>
+        </label>
+        <textarea id="comentario-producto-simple" class="comentario-textarea" placeholder="Ej: sin cebolla, bien cocido, extra salsa..." rows="2"></textarea>
+      </div>
+      <button class="btn-confirmar-tamano" id="btn-confirmar-comentario-simple">
+        <span class="material-symbols-outlined" style="font-size:16px">add_shopping_cart</span>
+        Agregar a la orden
+      </button>
     </div>
+  </div>
 
-    <div class="layout">
+  <!-- ═══════════════ MODAL: Ticket ═══════════════ -->
+  <div class="modal-overlay oculto" id="modal-confirmacion">
+    <div class="modal-ticket-wrapper">
 
-        <!-- CATÁLOGO -->
-        <div class="catalogo-panel">
-            <div class="buscador-wrapper">
-                <span class="buscador-icono">⌕</span>
-                <input type="text" id="buscador" class="buscador-input" placeholder="Buscar producto..." autocomplete="off">
-                <button class="buscador-clear" id="buscador-clear" style="display:none">✕</button>
-            </div>
-            <div class="chips-categorias" id="chips-categorias"></div>
-            <div class="productos-grid" id="productos-grid"></div>
+      <div class="modal-ticket" id="ticket-imprimible">
+        <div class="ticket-negocio">
+          <div class="ticket-negocio-nombre">HELADERÍA DAIRY KING</div>
+          <div class="ticket-negocio-razon">Dairy King S.A. de C.V.</div>
+          <div class="ticket-negocio-rfc">RFC: DKI230415ABC</div>
+          <div class="ticket-negocio-dir">Av. Central #123, Cancún, Q. Roo</div>
+          <div class="ticket-negocio-tel">Tel: 998-123-4567</div>
         </div>
 
-        <!-- ORDEN -->
-        <div class="orden-panel">
+        <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
 
-            <div class="orden-header">
-                <h2>Orden actual</h2>
-                <button class="btn-limpiar" id="btn-limpiar-orden">Limpiar</button>
-            </div>
-
-            <div class="orden-items" id="orden-items">
-                <div class="orden-vacia" id="orden-vacia">
-                    <span class="orden-vacia-icono">◻</span>
-                    <p>Agrega productos desde el catálogo</p>
-                </div>
-            </div>
-
-            <!-- Comentario general de la orden -->
-            <div class="comentario-orden-seccion">
-                <label for="comentario-orden" class="comentario-label">
-                    💬 Nota de la orden
-                </label>
-                <textarea
-                    id="comentario-orden"
-                    class="comentario-textarea"
-                    placeholder="Ej: cliente con alergia a nueces, mesa 4..."
-                    rows="2"
-                ></textarea>
-            </div>
-
-            <div class="orden-totales">
-                <div class="orden-total-fila">
-                    <span>Subtotal</span>
-                    <span id="subtotal">$0.00</span>
-                </div>
-                <!-- NUEVO: fila de descuento, oculta hasta que se aplique una promoción -->
-                <div class="orden-total-fila" id="fila-descuento" style="display:none;color:#dc2626">
-                    <span id="label-descuento">Descuento</span>
-                    <span id="monto-descuento">−$0.00</span>
-                </div>
-                <div class="orden-total-fila grande">
-                    <span>Total</span>
-                    <span id="total-orden">$0.00</span>
-                </div>
-            </div>
-
-            <!-- NUEVO: botón para aplicar promoción con autorización del gerente -->
-            <div id="promo-seccion" style="margin:8px 0">
-                <button class="btn-secundario" id="btn-aplicar-promo" style="width:100%;font-size:0.82rem">
-                    🏷 Aplicar promoción
-                </button>
-                <!-- Se muestra cuando hay una promo activa -->
-                <div id="promo-activa-info" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-top:6px;font-size:0.82rem;display:none;justify-content:space-between;align-items:center">
-                    <span id="promo-activa-nombre" style="color:#16a34a;font-weight:600"></span>
-                    <button id="btn-quitar-promo" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:0.78rem;font-weight:600">✕ Quitar</button>
-                </div>
-            </div>
-
-            <!-- MÉTODO DE PAGO -->
-            <div class="metodo-pago-seccion">
-                <p class="metodo-label">Método de pago</p>
-                <div class="metodo-botones">
-                    <button class="btn-metodo activo" data-metodo="efectivo">
-                        <span class="metodo-icono">💵</span> Efectivo
-                    </button>
-                    <button class="btn-metodo" data-metodo="tarjeta">
-                        <span class="metodo-icono">💳</span> Tarjeta
-                    </button>
-                </div>
-
-                <div class="tipo-tarjeta-seccion" id="tipo-tarjeta-seccion" style="display:none">
-                    <p class="metodo-label" style="margin-top:12px">Tipo de tarjeta</p>
-                    <div class="metodo-botones">
-                        <button class="btn-tipo activo" data-tipo="debito">Débito</button>
-                        <button class="btn-tipo" data-tipo="credito">Crédito</button>
-                    </div>
-                </div>
-
-                <div class="efectivo-seccion" id="efectivo-seccion">
-                    <div class="efectivo-row">
-                        <div class="campo-grupo">
-                            <label for="monto-recibido">Con cuánto paga</label>
-                            <input type="number" id="monto-recibido" placeholder="0.00" min="0" step="0.50">
-                        </div>
-                        <div class="cambio-display">
-                            <span class="cambio-label">Cambio</span>
-                            <span class="cambio-valor" id="cambio-valor">—</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <button class="btn-confirmar" id="btn-confirmar">Confirmar venta</button>
-
+        <div class="ticket-meta">
+          <div class="ticket-meta-fila"><span>Ticket #</span><span id="ticket-numero"></span></div>
+          <div class="ticket-meta-fila"><span>Fecha</span><span id="ticket-fecha"></span></div>
+          <div class="ticket-meta-fila"><span>Hora</span><span id="ticket-hora"></span></div>
         </div>
+
+        <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+
+        <div class="ticket-columnas-header">
+          <span>Producto</span><span>Cant.</span><span>P.U.</span><span>Total</span>
+        </div>
+        <div class="ticket-items" id="ticket-items"></div>
+
+        <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+
+        <div class="ticket-nota-orden" id="ticket-nota-orden" style="display:none">
+          <span class="ticket-nota-label">Nota:</span>
+          <span id="ticket-nota-texto"></span>
+        </div>
+
+        <div class="ticket-totales">
+          <div class="ticket-fila"><span>Subtotal</span><span id="ticket-subtotal"></span></div>
+          <div class="ticket-fila" id="ticket-fila-descuento" style="display:none">
+            <span id="ticket-promo-nombre">Descuento</span>
+            <span id="ticket-descuento" style="color:#dc2626"></span>
+          </div>
+          <div class="ticket-fila"><span>IVA (16%)</span><span id="ticket-iva"></span></div>
+          <div class="ticket-fila ticket-fila-total"><span>TOTAL</span><span id="ticket-total"></span></div>
+        </div>
+
+        <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+
+        <div class="ticket-pago">
+          <div class="ticket-fila"><span>Forma de pago</span><span id="ticket-metodo"></span></div>
+          <div class="ticket-fila" id="ticket-fila-recibido" style="display:none">
+            <span>Efectivo recibido</span><span id="ticket-recibido"></span>
+          </div>
+          <div class="ticket-fila ticket-cambio-resaltado" id="ticket-fila-cambio" style="display:none">
+            <span>Cambio</span><span id="ticket-cambio"></span>
+          </div>
+        </div>
+
+        <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+        <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
+
+        <div class="ticket-factura-seccion">
+          <div class="ticket-factura-qr" id="ticket-qr"></div>
+          <div class="ticket-factura-info">
+            <p class="ticket-factura-titulo">¿Necesitas factura?</p>
+            <p class="ticket-factura-url">Escanea el QR o visita:</p>
+            <p class="ticket-factura-url-texto">dairyking.com/factura</p>
+            <p class="ticket-factura-codigo-label">Código de verificación:</p>
+            <p class="ticket-factura-codigo" id="ticket-codigo-factura">——</p>
+          </div>
+        </div>
+
+        <div class="ticket-pie">
+          <p>IVA incluido en el precio</p>
+          <p>¡Gracias por su preferencia!</p>
+          <p>Conserve su ticket</p>
+        </div>
+      </div><!-- /ticket-imprimible -->
+
+      <div class="ticket-acciones">
+        <button class="btn-imprimir" id="btn-imprimir">
+          <span class="material-symbols-outlined" style="font-size:16px">print</span>
+          Imprimir ticket
+        </button>
+        <button class="btn-listo" id="btn-listo">Listo</button>
+      </div>
+
     </div>
+  </div>
 
-    <!-- MODAL: Seleccionar tamaño + comentario por producto -->
-    <!--
-        Este modal aparece cuando el empleado hace click en un producto
-        QUE TIENE tamaños definidos. Le pide que elija el tamaño
-        antes de agregar al carrito. También tiene campo de comentario por producto.
-        Si el producto NO tiene tamaños, va directo al carrito sin este modal.
-    -->
-    <div class="modal-overlay oculto" id="modal-tamano">
-        <div class="modal-tamano-card">
-            <div class="modal-tamano-header">
-                <div>
-                    <p class="modal-tamano-categoria" id="mtam-categoria"></p>
-                    <h3 id="mtam-nombre"></h3>
-                </div>
-                <button class="btn-modal-cerrar" id="btn-cerrar-modal-tamano">✕</button>
-            </div>
-
-            <p class="modal-tamano-label">Selecciona el tamaño</p>
-            <div class="tamanos-opciones" id="tamanos-opciones">
-                <!-- JS lo llena con las opciones de este producto -->
-            </div>
-
-            <!-- Comentario por este producto específico -->
-            <div class="campo-comentario">
-                <label for="comentario-producto" class="modal-tamano-label">
-                    Nota del producto <span style="color:var(--texto-suave);font-weight:400">(opcional)</span>
-                </label>
-                <textarea
-                    id="comentario-producto"
-                    class="comentario-textarea"
-                    placeholder="Ej: sin azúcar, extra shot, sin hielo..."
-                    rows="2"
-                ></textarea>
-            </div>
-
-            <button class="btn-confirmar-tamano" id="btn-confirmar-tamano">
-                Agregar a la orden
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: Comentario por producto sin tamaño -->
-    <!--
-        Si el producto NO tiene tamaños, mostramos este modal más simple
-        para que igual puedan agregar un comentario al producto.
-    -->
-    <div class="modal-overlay oculto" id="modal-comentario-simple">
-        <div class="modal-tamano-card">
-            <div class="modal-tamano-header">
-                <div>
-                    <p class="modal-tamano-categoria" id="mcom-categoria"></p>
-                    <h3 id="mcom-nombre"></h3>
-                    <p class="mcom-precio" id="mcom-precio"></p>
-                </div>
-                <button class="btn-modal-cerrar" id="btn-cerrar-modal-comentario">✕</button>
-            </div>
-
-            <div class="campo-comentario">
-                <label for="comentario-producto-simple" class="modal-tamano-label">
-                    Nota del producto <span style="color:var(--texto-suave);font-weight:400">(opcional)</span>
-                </label>
-                <textarea
-                    id="comentario-producto-simple"
-                    class="comentario-textarea"
-                    placeholder="Ej: sin cebolla, bien cocido, extra salsa..."
-                    rows="2"
-                ></textarea>
-            </div>
-
-            <button class="btn-confirmar-tamano" id="btn-confirmar-comentario-simple">
-                Agregar a la orden
-            </button>
-        </div>
-    </div>
-
-    <!-- MODAL: Ticket de confirmación -->
-    <div class="modal-overlay oculto" id="modal-confirmacion">
-        <div class="modal-ticket-wrapper">
-
-            <!-- Ticket imprimible -->
-            <div class="modal-ticket" id="ticket-imprimible">
-
-                <!-- ENCABEZADO DEL NEGOCIO -->
-                <div class="ticket-negocio">
-                    <div class="ticket-negocio-nombre">HELADERÍA DAIRY KING</div>
-                    <div class="ticket-negocio-razon">Dairy King S.A. de C.V.</div>
-                    <div class="ticket-negocio-rfc">RFC: DKI230415ABC</div>
-                    <div class="ticket-negocio-dir">Av. Central #123, Cancún, Q. Roo</div>
-                    <div class="ticket-negocio-tel">Tel: 998-123-4567</div>
-                </div>
-
-                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
-
-                <!-- DATOS DE LA VENTA -->
-                <div class="ticket-meta">
-                    <div class="ticket-meta-fila">
-                        <span>Ticket #</span>
-                        <span id="ticket-numero"></span>
-                    </div>
-                    <div class="ticket-meta-fila">
-                        <span>Fecha</span>
-                        <span id="ticket-fecha"></span>
-                    </div>
-                    <div class="ticket-meta-fila">
-                        <span>Hora</span>
-                        <span id="ticket-hora"></span>
-                    </div>
-                </div>
-
-                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
-
-                <!-- PRODUCTOS -->
-                <div class="ticket-columnas-header">
-                    <span>Producto</span>
-                    <span>Cant.</span>
-                    <span>P.U.</span>
-                    <span>Total</span>
-                </div>
-                <div class="ticket-items" id="ticket-items"></div>
-
-                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
-
-                <!-- NOTA DE ORDEN -->
-                <div class="ticket-nota-orden" id="ticket-nota-orden" style="display:none">
-                    <span class="ticket-nota-label">Nota:</span>
-                    <span id="ticket-nota-texto"></span>
-                </div>
-
-                <!-- TOTALES E IVA -->
-                <div class="ticket-totales">
-                    <div class="ticket-fila">
-                        <span>Subtotal</span>
-                        <span id="ticket-subtotal"></span>
-                    </div>
-                    <!-- NUEVO: fila de descuento en ticket, oculta si no hay promo -->
-                    <div class="ticket-fila" id="ticket-fila-descuento" style="display:none">
-                        <span id="ticket-promo-nombre">Descuento</span>
-                        <span id="ticket-descuento" style="color:#dc2626"></span>
-                    </div>
-                    <div class="ticket-fila">
-                        <span>IVA (16%)</span>
-                        <span id="ticket-iva"></span>
-                    </div>
-                    <div class="ticket-fila ticket-fila-total">
-                        <span>TOTAL</span>
-                        <span id="ticket-total"></span>
-                    </div>
-                </div>
-
-                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
-
-                <!-- PAGO -->
-                <div class="ticket-pago">
-                    <div class="ticket-fila">
-                        <span>Forma de pago</span>
-                        <span id="ticket-metodo"></span>
-                    </div>
-                    <div class="ticket-fila" id="ticket-fila-recibido" style="display:none">
-                        <span>Efectivo recibido</span>
-                        <span id="ticket-recibido"></span>
-                    </div>
-                    <div class="ticket-fila ticket-cambio-resaltado" id="ticket-fila-cambio" style="display:none">
-                        <span>Cambio</span>
-                        <span id="ticket-cambio"></span>
-                    </div>
-                </div>
-
-                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
-
-
-                <!-- AUTOFACTURACIÓN -->
-                <div class="ticket-separador">- - - - - - - - - - - - - - - - - - -</div>
-                <div class="ticket-factura-seccion">
-                    <div class="ticket-factura-qr" id="ticket-qr"></div>
-                    <div class="ticket-factura-info">
-                        <p class="ticket-factura-titulo">¿Necesitas factura?</p>
-                        <p class="ticket-factura-url">Escanea el QR o visita:</p>
-                        <p class="ticket-factura-url-texto">dairyking.com/factura</p>
-                        <p class="ticket-factura-codigo-label">Código de verificación:</p>
-                        <p class="ticket-factura-codigo" id="ticket-codigo-factura">——</p>
-                    </div>
-                </div>
-
-                <!-- PIE DEL TICKET -->
-                <div class="ticket-pie">
-                    <p>IVA incluido en el precio</p>
-                    <p>¡Gracias por su preferencia!</p>
-                    <p>Conserve su ticket</p>
-                </div>
-
-            </div>
-
-            <!-- BOTONES FUERA DEL ÁREA IMPRIMIBLE -->
-            <div class="ticket-acciones">
-                <button class="btn-imprimir" id="btn-imprimir">🖨 Imprimir ticket</button>
-                <button class="btn-listo" id="btn-listo">Listo</button>
-            </div>
-
-        </div>
-    </div>
-
-        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/config.js"></script>
-    <script src="../js/utils.js"></script>
-    <script src="../js/auth.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="../js/empleado.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="../js/empleado.js"></script>
 </body>
 </html>

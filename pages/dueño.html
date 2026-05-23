@@ -3,38 +3,1051 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel del Dueño</title>
-    <link rel="stylesheet" href="../css/variables.css">
+    <title>Panel Admin — Dairy King</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inconsolata:wght@300;400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/dueño.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg:           '#0b0b0d',
+                        surface:      '#111114',
+                        's2':         '#18181c',
+                        's3':         '#202026',
+                        border:       '#2a2a32',
+                        'border-hi':  '#3d3d48',
+                        primary:      '#22d3ee',
+                        'primary-dk': '#0891b2',
+                        accent:       '#a78bfa',
+                        txt:          '#e8e8f0',
+                        'txt-soft':   '#9494a8',
+                        'txt-muted':  '#55555f',
+                    },
+                    fontFamily: {
+                        sans:    ['Inter','sans-serif'],
+                        display: ['Sora','sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* ── CSS vars consumed by dueño.js inline styles ── */
+        :root {
+            --texto-suave: #9494a8;
+            --borde:       #2a2a32;
+            --fuente:      'Inter', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #0b0b0d;
+            color: #e8e8f0;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #111114; }
+        ::-webkit-scrollbar-thumb { background: #2a2a32; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3d3d48; }
+
+        /* ════════════════ SIDEBAR ════════════════ */
+        .sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: #111114;
+            border-right: 1px solid #2a2a32;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 12px;
+            gap: 4px;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 4px 20px;
+            border-bottom: 1px solid #2a2a32;
+            margin-bottom: 10px;
+        }
+
+        .logo-badge {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #22d3ee, #0891b2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Sora', sans-serif;
+            font-weight: 800;
+            font-size: 0.85rem;
+            color: #0b0b0d;
+            flex-shrink: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .logo-text-wrap { display: flex; flex-direction: column; }
+
+        .logo-name {
+            font-family: 'Sora', sans-serif;
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: #e8e8f0;
+            letter-spacing: 0.05em;
+        }
+
+        .logo-sub {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: #55555f;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+
+        /* JS toggles .activo on nav items */
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: #55555f;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.14s;
+            width: 100%;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .nav-item:hover {
+            background: #18181c;
+            color: #9494a8;
+        }
+
+        .nav-item.activo {
+            background: rgba(34,211,238,0.10);
+            border-color: rgba(34,211,238,0.22);
+            color: #22d3ee;
+        }
+
+        .nav-icon {
+            font-size: 19px;
+            width: 19px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-cerrar-sesion {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #2a2a32;
+            background: transparent;
+            color: #55555f;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.14s;
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        .btn-cerrar-sesion:hover {
+            background: rgba(255,80,80,0.07);
+            color: #f87171;
+            border-color: rgba(248,113,113,0.25);
+        }
+
+        /* ════════════════ MAIN CONTENT ════════════════ */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ════════════════ TOPBAR ════════════════ */
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 24px;
+            background: #111114;
+            border-bottom: 1px solid #2a2a32;
+            flex-shrink: 0;
+        }
+
+        .topbar-titulo { flex: 1; min-width: 0; }
+
+        .topbar-titulo h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #e8e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .topbar-titulo p {
+            font-size: 0.7rem;
+            color: #55555f;
+            margin-top: 1px;
+        }
+
+        .topbar-fecha {
+            font-size: 0.76rem;
+            color: #55555f;
+            padding: 5px 10px;
+            background: #18181c;
+            border: 1px solid #2a2a32;
+            border-radius: 7px;
+            white-space: nowrap;
+        }
+
+        .topbar-usuario {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .usuario-info {
+            font-size: 0.74rem;
+            color: #55555f;
+            padding: 5px 10px;
+            background: #18181c;
+            border: 1px solid #2a2a32;
+            border-radius: 7px;
+            white-space: nowrap;
+        }
+
+        /* ════════════════ SECTIONS ════════════════ */
+        /* JS toggles .activa */
+        .seccion {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .seccion.activa { display: flex; }
+
+        /* ════════════════ KPI CARDS ════════════════ */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .stat-card {
+            background: #111114;
+            border: 1px solid #2a2a32;
+            border-radius: 12px;
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+
+        .stat-card:hover { border-color: #3d3d48; }
+
+        .stat-card.accent {
+            border-color: rgba(34,211,238,0.28);
+            background: linear-gradient(135deg, #18181c 60%, #111114);
+        }
+
+        .stat-label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #55555f;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .stat-valor {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.85rem;
+            font-weight: 700;
+            color: #e8e8f0;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .stat-card.accent .stat-valor { color: #22d3ee; }
+
+        .stat-sub { font-size: 0.72rem; color: #55555f; }
+
+        /* ════════════════ PANEL ════════════════ */
+        .panel {
+            background: #111114;
+            border: 1px solid #2a2a32;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid #2a2a32;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .panel-header h2 {
+            font-family: 'Sora', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #e8e8f0;
+        }
+
+        .panel-filtros {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filtros-extra {
+            padding: 12px 20px;
+            border-bottom: 1px solid #2a2a32;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filtros-extra > label {
+            font-size: 0.67rem;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: #55555f;
+            font-weight: 600;
+        }
+
+        .filtro-input {
+            padding: 7px 10px;
+            background: #18181c;
+            border: 1px solid #2a2a32;
+            border-radius: 7px;
+            color: #9494a8;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            outline: none;
+            transition: border-color 0.14s;
+        }
+
+        .filtro-input:focus { border-color: #22d3ee; }
+
+        /* ════════════════ FILTERS BAR ════════════════ */
+        .filtros-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filtros-categorias {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        /* JS generates & toggles .activo */
+        .chip-categoria {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 13px;
+            border-radius: 20px;
+            border: 1px solid #2a2a32;
+            background: #18181c;
+            color: #55555f;
+            font-size: 0.78rem;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.14s;
+            white-space: nowrap;
+        }
+
+        .chip-categoria:hover { border-color: #3d3d48; color: #9494a8; }
+
+        .chip-categoria.activo {
+            background: rgba(34,211,238,0.10);
+            border-color: rgba(34,211,238,0.30);
+            color: #22d3ee;
+        }
+
+        /* ════════════════ TABLE ════════════════ */
+        .tabla-wrapper { overflow-x: auto; }
+
+        .tabla {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        .tabla thead tr { background: #18181c; }
+
+        .tabla th {
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #55555f;
+            font-weight: 600;
+            border-bottom: 1px solid #2a2a32;
+            white-space: nowrap;
+        }
+
+        .tabla td {
+            padding: 10px 14px;
+            color: #9494a8;
+            border-bottom: 1px solid rgba(42,42,50,0.6);
+            vertical-align: middle;
+        }
+
+        .tabla tbody tr:hover { background: rgba(24,24,28,0.7); }
+        .tabla tbody tr:last-child td { border-bottom: none; }
+
+        /* JS-generated table action buttons */
+        .btn-editar, .btn-eliminar, .btn-ver-ticket, .btn-toggle-promo {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.74rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.14s;
+            border: 1px solid;
+            white-space: nowrap;
+        }
+
+        .btn-editar {
+            background: rgba(34,211,238,0.07);
+            border-color: rgba(34,211,238,0.22);
+            color: #22d3ee;
+        }
+        .btn-editar:hover { background: rgba(34,211,238,0.14); }
+
+        .btn-eliminar {
+            background: rgba(248,113,113,0.07);
+            border-color: rgba(248,113,113,0.22);
+            color: #f87171;
+        }
+        .btn-eliminar:hover { background: rgba(248,113,113,0.14); }
+
+        .btn-ver-ticket {
+            background: rgba(167,139,250,0.07);
+            border-color: rgba(167,139,250,0.22);
+            color: #a78bfa;
+        }
+        .btn-ver-ticket:hover { background: rgba(167,139,250,0.14); }
+
+        .btn-toggle-promo {
+            background: #18181c;
+            border-color: #2a2a32;
+            color: #55555f;
+        }
+        .btn-toggle-promo:hover { border-color: #3d3d48; color: #9494a8; }
+
+        /* ════════════════ BUTTONS ════════════════ */
+        .btn-primario {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #22d3ee, #0891b2);
+            color: #0b0b0d;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.14s;
+            white-space: nowrap;
+        }
+        .btn-primario:hover { opacity: 0.84; }
+
+        .btn-secundario {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #18181c;
+            color: #9494a8;
+            border: 1px solid #2a2a32;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.14s;
+            white-space: nowrap;
+        }
+        .btn-secundario:hover { background: #202026; border-color: #3d3d48; color: #e8e8f0; }
+
+        .btn-cambiar-panel {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            background: rgba(167,139,250,0.09);
+            color: #a78bfa;
+            border: 1px solid rgba(167,139,250,0.22);
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.14s;
+            white-space: nowrap;
+        }
+        .btn-cambiar-panel:hover { background: rgba(167,139,250,0.16); }
+
+        .btn-nav-mes {
+            width: 32px;
+            height: 32px;
+            border-radius: 7px;
+            border: 1px solid #2a2a32;
+            background: #18181c;
+            color: #9494a8;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.14s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .btn-nav-mes:hover { border-color: #22d3ee; color: #22d3ee; }
+
+        /* ════════════════ CALENDARIO ════════════════ */
+        .calendario-layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .calendario-layout { grid-template-columns: 1fr; }
+        }
+
+        .calendario-panel .panel-header {
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .calendario-dias-semana {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            padding: 10px 14px 4px;
+        }
+
+        .calendario-dias-semana span {
+            text-align: center;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #55555f;
+            font-weight: 600;
+            padding: 4px 0;
+        }
+
+        /* JS generates cal-dia cells */
+        .calendario-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            padding: 4px 14px 14px;
+        }
+
+        .cal-dia {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 7px;
+            font-size: 0.8rem;
+            color: #9494a8;
+            cursor: pointer;
+            transition: background 0.14s;
+            position: relative;
+        }
+
+        .cal-dia:hover { background: #18181c; }
+
+        .cal-dia.vacio {
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .cal-dia.hoy {
+            background: rgba(34,211,238,0.12);
+            color: #22d3ee;
+            font-weight: 700;
+            border: 1px solid rgba(34,211,238,0.30);
+        }
+
+        .cal-dia.tiene-entrega::after {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #a78bfa;
+            position: absolute;
+            bottom: 4px;
+        }
+
+        /* ════════════════ ENTREGAS ════════════════ */
+        .lista-entregas {
+            list-style: none;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        /* JS generates entrega-item */
+        .entrega-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: #18181c;
+            border: 1px solid #2a2a32;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: #9494a8;
+            gap: 8px;
+        }
+
+        .entrega-fecha { font-size: 0.7rem; color: #55555f; }
+
+        /* ════════════════ MODAL OVERLAY ════════════════ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.82);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.oculto { display: none; }
+
+        /* ════════════════ MODAL ════════════════ */
+        .modal {
+            background: #111114;
+            border: 1px solid #2a2a32;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 460px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-grande { max-width: 700px; }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #2a2a32;
+            position: sticky;
+            top: 0;
+            background: #111114;
+            z-index: 1;
+        }
+
+        .modal-header h3 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #e8e8f0;
+        }
+
+        .modal-cerrar {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            border: 1px solid #2a2a32;
+            background: #18181c;
+            color: #55555f;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.14s;
+            flex-shrink: 0;
+        }
+        .modal-cerrar:hover { border-color: #f87171; color: #f87171; }
+
+        /* ════════════════ FORM FIELDS ════════════════ */
+        .campo-grupo {
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .campo-grupo label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #55555f;
+            font-weight: 600;
+        }
+
+        .campo-grupo input,
+        .campo-grupo select {
+            padding: 9px 12px;
+            background: #18181c;
+            border: 1px solid #2a2a32;
+            border-radius: 8px;
+            color: #e8e8f0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            outline: none;
+            width: 100%;
+            transition: border-color 0.14s;
+        }
+
+        .campo-grupo input:focus,
+        .campo-grupo select:focus { border-color: #22d3ee; }
+
+        .campo-grupo select option { background: #18181c; color: #e8e8f0; }
+
+        .campo-grupo-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #55555f;
+            font-weight: 600;
+        }
+
+        .modal-acciones {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 16px 20px;
+            border-top: 1px solid #2a2a32;
+            position: sticky;
+            bottom: 0;
+            background: #111114;
+        }
+
+        /* ════════════════ TWO-COLUMN MODAL ════════════════ */
+        .modal-dos-columnas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .modal-dos-columnas > div:first-child { border-right: 1px solid #2a2a32; }
+
+        @media (max-width: 600px) {
+            .modal-dos-columnas { grid-template-columns: 1fr; }
+            .modal-dos-columnas > div:first-child { border-right: none; border-bottom: 1px solid #2a2a32; }
+        }
+
+        .tamanos-columna {
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .tamanos-header { display: flex; flex-direction: column; gap: 4px; }
+        .tamanos-hint { font-size: 0.7rem; color: #55555f; }
+
+        .tamanos-lista-fija { display: flex; flex-direction: column; gap: 6px; }
+
+        /* JS generates tamano-fila + toggles .activo */
+        .tamano-fila {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            background: #18181c;
+            border: 1px solid #2a2a32;
+            border-radius: 8px;
+            transition: all 0.14s;
+        }
+
+        .tamano-fila.activo {
+            border-color: rgba(34,211,238,0.30);
+            background: rgba(34,211,238,0.05);
+        }
+
+        .tamano-fila label {
+            flex: 1;
+            font-size: 0.82rem;
+            color: #9494a8;
+            cursor: pointer;
+        }
+
+        .tamano-fila input[type="number"],
+        .tamano-fila input[type="text"] {
+            width: 80px;
+            padding: 5px 8px;
+            background: #0b0b0d;
+            border: 1px solid #2a2a32;
+            border-radius: 6px;
+            color: #e8e8f0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        .tamano-fila input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #22d3ee;
+            cursor: pointer;
+        }
+
+        /* ════════════════ CATEGORIAS MODAL ════════════════ */
+        .lista-categorias {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin: 8px 20px 16px;
+            max-height: 260px;
+            overflow-y: auto;
+        }
+
+        /* JS generates categoria-item */
+        .categoria-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #18181c;
+            border: 1px solid #2a2a32;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            color: #9494a8;
+        }
+
+        .input-con-boton { display: flex; gap: 8px; }
+        .input-con-boton input { flex: 1; }
+
+        /* ════════════════ TICKET DUEÑO ════════════════ */
+        .modal-ticket-wrapper-dueno {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-ticket-dueno {
+            background: #fff;
+            color: #111;
+            padding: 24px 20px;
+            width: 290px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.78rem;
+            border-radius: 10px;
+        }
+
+        .ticket-negocio { text-align: center; margin-bottom: 8px; }
+        .ticket-negocio-nombre { font-weight: 700; font-size: 0.88rem; }
+        .ticket-negocio-razon,
+        .ticket-negocio-rfc,
+        .ticket-negocio-dir,
+        .ticket-negocio-tel { font-size: 0.7rem; color: #555; }
+
+        .ticket-sep { text-align: center; color: #bbb; margin: 6px 0; font-size: 0.68rem; }
+
+        .ticket-meta-d { display: flex; flex-direction: column; gap: 2px; }
+        .ticket-meta-fila-d { display: flex; justify-content: space-between; font-size: 0.72rem; }
+
+        .ticket-col-header-d {
+            display: grid;
+            grid-template-columns: 2fr 0.6fr 0.8fr 0.8fr;
+            gap: 4px;
+            font-weight: 700;
+            font-size: 0.68rem;
+            padding: 4px 0;
+        }
+
+        /* JS generates these rows */
+        .ticket-item-row-d,
+        .ticket-item-fila-d {
+            display: grid;
+            grid-template-columns: 2fr 0.6fr 0.8fr 0.8fr;
+            gap: 4px;
+            font-size: 0.7rem;
+            padding: 3px 0;
+            border-bottom: 1px dashed #ddd;
+            color: #111;
+        }
+
+        .ticket-totales-d { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+        .ticket-fila-d { display: flex; justify-content: space-between; font-size: 0.74rem; }
+        .ticket-fila-total-d { font-weight: 700; font-size: 0.88rem; }
+
+        .ticket-pago-d { display: flex; flex-direction: column; gap: 2px; }
+        .ticket-cambio-d { color: #b45309; }
+
+        .ticket-nota-d { margin: 4px 0; font-size: 0.7rem; }
+        .ticket-nota-lbl-d { font-weight: 700; }
+
+        .ticket-pie-d { text-align: center; margin-top: 8px; font-size: 0.7rem; color: #555; }
+        .ticket-pie-d p { margin: 2px 0; }
+
+        .ticket-acciones-d { display: flex; gap: 10px; }
+
+        .btn-imprimir-d {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 22px;
+            background: linear-gradient(135deg, #22d3ee, #0891b2);
+            color: #0b0b0d;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.14s;
+        }
+        .btn-imprimir-d:hover { opacity: 0.84; }
+
+        .btn-cerrar-ticket-d {
+            padding: 10px 22px;
+            background: #18181c;
+            color: #9494a8;
+            border: 1px solid #2a2a32;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.14s;
+        }
+        .btn-cerrar-ticket-d:hover { background: #202026; }
+
+        /* ════════════════ HORARIO GRID (JS generates) ════════════════ */
+        #horario-dias-grid { padding: 0 20px 4px; }
+
+        #horario-dias-grid input {
+            padding: 6px 8px;
+            background: #18181c;
+            border: 1px solid #2a2a32;
+            border-radius: 6px;
+            color: #e8e8f0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            outline: none;
+            width: 100%;
+            transition: border-color 0.14s;
+        }
+        #horario-dias-grid input:focus { border-color: #22d3ee; }
+
+        #horario-dias-grid label {
+            font-size: 0.72rem;
+            color: var(--texto-suave);
+            font-family: var(--fuente);
+        }
+
+        /* ════════════════ PRINT ════════════════ */
+        @media print {
+            body > *:not(#modal-ticket-dueno) { display: none !important; }
+            #modal-ticket-dueno {
+                position: static !important;
+                background: none !important;
+                padding: 0 !important;
+                display: flex !important;
+            }
+            .ticket-acciones-d { display: none !important; }
+        }
+    </style>
 </head>
 <body data-roles-permitidos="dueño,gerente">
 
+    <!-- ══════════════ SIDEBAR ══════════════ -->
     <aside class="sidebar">
         <div class="sidebar-logo">
-            <span class="logo-icon">◈</span>
-            <span class="logo-texto">ADMIN</span>
+            <div class="logo-badge">DK</div>
+            <div class="logo-text-wrap">
+                <div class="logo-name">DAIRY KING</div>
+                <div class="logo-sub">Admin</div>
+            </div>
         </div>
+
         <nav class="sidebar-nav">
             <button class="nav-item activo" data-seccion="dashboard">
-                <span class="nav-icon">▦</span><span>Dashboard</span>
+                <span class="nav-icon material-symbols-outlined">dashboard</span>
+                <span>Dashboard</span>
             </button>
             <button class="nav-item" data-seccion="productos">
-                <span class="nav-icon">⊞</span><span>Productos</span>
+                <span class="nav-icon material-symbols-outlined">inventory_2</span>
+                <span>Productos</span>
             </button>
             <button class="nav-item" data-seccion="promociones">
-                <span class="nav-icon">🏷</span><span>Promociones</span>
+                <span class="nav-icon material-symbols-outlined">local_offer</span>
+                <span>Promociones</span>
             </button>
             <button class="nav-item" data-seccion="calendario">
-                <span class="nav-icon">◫</span><span>Calendario</span>
+                <span class="nav-icon material-symbols-outlined">calendar_month</span>
+                <span>Calendario</span>
+            </button>
+            <button class="nav-item" data-seccion="horario">
+                <span class="nav-icon material-symbols-outlined">schedule</span>
+                <span>Horario</span>
             </button>
         </nav>
-        <button class="btn-cerrar-sesion" onclick="sessionStorage.removeItem('sesion'); window.location.href='index.html'">
-            <span>⎋</span> Salir
+
+        <button class="btn-cerrar-sesion"
+                onclick="sessionStorage.removeItem('sesion'); window.location.href='index.html'">
+            <span class="material-symbols-outlined" style="font-size:18px">logout</span>
+            Salir
         </button>
     </aside>
 
+    <!-- ══════════════ MAIN ══════════════ -->
     <main class="main-content">
 
         <header class="topbar">
@@ -44,12 +1057,17 @@
             </div>
             <div class="topbar-fecha"><span id="fecha-hoy"></span></div>
             <div class="topbar-usuario">
-                <button class="btn-cambiar-panel" id="btn-cambiar-panel" style="display:none">🛒 Punto de venta</button>
-                <span class="usuario-info"><span id="nombre-usuario"></span> · <span id="rol-usuario"></span></span>
+                <button class="btn-cambiar-panel" id="btn-cambiar-panel" style="display:none">
+                    <span class="material-symbols-outlined" style="font-size:16px">point_of_sale</span>
+                    Punto de venta
+                </button>
+                <span class="usuario-info">
+                    <span id="nombre-usuario"></span> · <span id="rol-usuario"></span>
+                </span>
             </div>
         </header>
 
-        <!-- DASHBOARD -->
+        <!-- ══ DASHBOARD ══ -->
         <section id="seccion-dashboard" class="seccion activa">
             <div class="cards-grid">
                 <div class="stat-card accent">
@@ -68,23 +1086,36 @@
                     <div class="stat-sub">en inventario</div>
                 </div>
             </div>
+
             <div class="panel">
                 <div class="panel-header">
                     <h2>Ventas individuales — hoy</h2>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                        <input type="date" id="filtro-fecha-dashboard" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.85rem">
-                        <button class="btn-primario" id="btn-filtrar-fecha" style="padding:6px 14px;font-size:0.85rem">Ver ventas</button>
-                        <button class="btn-secundario" id="btn-filtrar-hoy" style="padding:6px 14px;font-size:0.85rem">Hoy</button>
-                        <button class="btn-secundario" id="btn-exportar-excel">⬇ Excel hoy</button>
-                        <button class="btn-secundario" id="btn-exportar-mes">⬇ Excel del mes</button>
-                        <button class="btn-secundario" id="btn-registrar-venta">+ Registrar venta</button>
+                    <div class="panel-filtros">
+                        <input type="date" id="filtro-fecha-dashboard" class="filtro-input">
+                        <button class="btn-primario" id="btn-filtrar-fecha">Ver ventas</button>
+                        <button class="btn-secundario" id="btn-filtrar-hoy">Hoy</button>
+                        <button class="btn-secundario" id="btn-exportar-excel">
+                            <span class="material-symbols-outlined" style="font-size:15px">download</span>
+                            Excel hoy
+                        </button>
+                        <button class="btn-secundario" id="btn-exportar-mes">
+                            <span class="material-symbols-outlined" style="font-size:15px">calendar_month</span>
+                            Excel del mes
+                        </button>
+                        <button class="btn-secundario" id="btn-registrar-venta">
+                            <span class="material-symbols-outlined" style="font-size:15px">add</span>
+                            Registrar venta
+                        </button>
                     </div>
-                    <div style="margin-top:10px">
-                        <label style="font-size:0.78rem;color:#888;display:block;margin-bottom:4px">Descargar día específico:</label>
-                        <div style="display:flex;gap:8px;align-items:center">
-                            <input type="date" id="input-fecha-excel" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:0.85rem">
-                            <button class="btn-secundario" id="btn-exportar-dia">⬇ Descargar</button>
-                        </div>
+                </div>
+                <div class="filtros-extra">
+                    <label>Descargar día específico</label>
+                    <div class="panel-filtros">
+                        <input type="date" id="input-fecha-excel" class="filtro-input">
+                        <button class="btn-secundario" id="btn-exportar-dia">
+                            <span class="material-symbols-outlined" style="font-size:15px">download</span>
+                            Descargar
+                        </button>
                     </div>
                 </div>
                 <div class="tabla-wrapper">
@@ -107,16 +1138,22 @@
             </div>
         </section>
 
-        <!-- PRODUCTOS -->
+        <!-- ══ PRODUCTOS ══ -->
         <section id="seccion-productos" class="seccion">
             <div class="filtros-bar">
                 <div class="filtros-categorias" id="filtros-categorias"></div>
-                <button class="btn-secundario" id="btn-gestionar-categorias">⊕ Categorías</button>
+                <button class="btn-secundario" id="btn-gestionar-categorias">
+                    <span class="material-symbols-outlined" style="font-size:15px">category</span>
+                    Categorías
+                </button>
             </div>
             <div class="panel">
                 <div class="panel-header">
                     <h2 id="titulo-tabla-productos">Todos los productos</h2>
-                    <button class="btn-primario" id="btn-agregar-producto">+ Agregar producto</button>
+                    <button class="btn-primario" id="btn-agregar-producto">
+                        <span class="material-symbols-outlined" style="font-size:15px">add</span>
+                        Agregar producto
+                    </button>
                 </div>
                 <div class="tabla-wrapper">
                     <table class="tabla">
@@ -135,12 +1172,15 @@
             </div>
         </section>
 
-        <!-- PROMOCIONES -->
+        <!-- ══ PROMOCIONES ══ -->
         <section id="seccion-promociones" class="seccion">
             <div class="panel">
                 <div class="panel-header">
                     <h2>Promociones</h2>
-                    <button class="btn-primario" id="btn-agregar-promo">+ Nueva promoción</button>
+                    <button class="btn-primario" id="btn-agregar-promo">
+                        <span class="material-symbols-outlined" style="font-size:15px">add</span>
+                        Nueva promoción
+                    </button>
                 </div>
                 <div class="tabla-wrapper">
                     <table class="tabla">
@@ -159,7 +1199,7 @@
             </div>
         </section>
 
-        <!-- CALENDARIO -->
+        <!-- ══ CALENDARIO ══ -->
         <section id="seccion-calendario" class="seccion">
             <div class="calendario-layout">
                 <div class="panel calendario-panel">
@@ -177,16 +1217,52 @@
                 <div class="panel entregas-panel">
                     <div class="panel-header">
                         <h2>Próximas entregas</h2>
-                        <button class="btn-primario" id="btn-agregar-entrega">+ Agregar</button>
+                        <button class="btn-primario" id="btn-agregar-entrega">
+                            <span class="material-symbols-outlined" style="font-size:15px">add</span>
+                            Agregar
+                        </button>
                     </div>
                     <ul class="lista-entregas" id="lista-entregas"></ul>
                 </div>
             </div>
         </section>
 
+        <!-- ══ HORARIO ══ -->
+        <section id="seccion-horario" class="seccion">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Horario de empleados</h2>
+                    <button class="btn-primario" id="btn-agregar-horario">
+                        <span class="material-symbols-outlined" style="font-size:15px">add</span>
+                        Asignar horario
+                    </button>
+                </div>
+                <div class="tabla-wrapper">
+                    <table class="tabla">
+                        <thead>
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Lunes</th>
+                                <th>Martes</th>
+                                <th>Miércoles</th>
+                                <th>Jueves</th>
+                                <th>Viernes</th>
+                                <th>Sábado</th>
+                                <th>Domingo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-horarios-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
     </main>
 
-    <!-- MODAL: Agregar Promoción -->
+    <!-- ══════════════════ MODALS ══════════════════ -->
+
+    <!-- MODAL: Agregar / Editar Promoción -->
     <div class="modal-overlay oculto" id="modal-promo-dueno">
         <div class="modal">
             <div class="modal-header">
@@ -196,7 +1272,8 @@
             <form id="form-promo">
                 <div class="campo-grupo">
                     <label for="promo-nombre">Nombre</label>
-                    <input type="text" id="promo-nombre" placeholder="Ej: 2x1 helados, Happy hour, Descuento empleado" required>
+                    <input type="text" id="promo-nombre"
+                           placeholder="Ej: 2x1 helados, Happy hour, Descuento empleado" required>
                 </div>
                 <div class="campo-grupo">
                     <label for="promo-tipo">Tipo de promoción</label>
@@ -208,21 +1285,16 @@
                         <option value="2x1">2x1 — el producto más barato gratis</option>
                     </select>
                 </div>
-
-                <!-- Valor numérico — se oculta en 2x1 -->
                 <div class="campo-grupo" id="promo-valor-grupo">
                     <label for="promo-valor" id="promo-valor-label">Porcentaje de descuento</label>
                     <input type="number" id="promo-valor" placeholder="Ej: 10" min="0" step="0.01">
                 </div>
-
-                <!-- Categoría — solo visible cuando aplica a categoría o 2x1 -->
                 <div class="campo-grupo" id="promo-categoria-grupo" style="display:none">
                     <label for="promo-categoria">Categoría a la que aplica</label>
                     <select id="promo-categoria">
                         <option value="">Todas las categorías</option>
                     </select>
                 </div>
-
                 <div class="modal-acciones">
                     <button type="button" class="btn-secundario" data-modal="modal-promo-dueno">Cancelar</button>
                     <button type="submit" class="btn-primario">Guardar</button>
@@ -231,7 +1303,7 @@
         </div>
     </div>
 
-    <!-- MODAL: Agregar/Editar Producto -->
+    <!-- MODAL: Agregar / Editar Producto -->
     <div class="modal-overlay oculto" id="modal-producto">
         <div class="modal modal-grande">
             <div class="modal-header">
@@ -261,22 +1333,16 @@
                         </div>
                     </div>
 
-                    <!--
-                        Columna derecha: tamaños fijos globales.
-                        El dueño activa los que aplican a este producto y les asigna precio.
-                        Mini / Chico / Mediano / Grande
-                    -->
                     <div class="tamanos-columna">
                         <div class="tamanos-header">
                             <span class="campo-grupo-label">Tamaños (opcional)</span>
                             <span class="tamanos-hint">Activa los tamaños que apliquen y pon su precio</span>
                         </div>
                         <div class="tamanos-lista-fija" id="tamanos-lista-fija">
-                            <!-- JS genera una fila por cada tamaño global -->
+                            <!-- JS genera una fila por tamaño global -->
                         </div>
                     </div>
                 </div>
-
                 <div class="modal-acciones">
                     <button type="button" class="btn-secundario" id="btn-cancelar-producto">Cancelar</button>
                     <button type="submit" class="btn-primario">Guardar producto</button>
@@ -357,7 +1423,7 @@
         </div>
     </div>
 
-    <!-- MODAL: Ver Ticket de venta -->
+    <!-- MODAL: Ver Ticket (dueño) -->
     <div class="modal-overlay oculto" id="modal-ticket-dueno">
         <div class="modal-ticket-wrapper-dueno">
             <div class="modal-ticket-dueno" id="ticket-dueno-imprimible">
@@ -420,12 +1486,37 @@
             </div>
 
             <div class="ticket-acciones-d">
-                <button class="btn-imprimir-d" id="btn-imprimir-dueno">🖨 Imprimir</button>
+                <button class="btn-imprimir-d" id="btn-imprimir-dueno">
+                    <span class="material-symbols-outlined" style="font-size:17px">print</span>
+                    Imprimir
+                </button>
                 <button class="btn-cerrar-ticket-d" id="btn-cerrar-ticket-dueno">Cerrar</button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL: Horario -->
+    <div class="modal-overlay oculto" id="modal-horario">
+        <div class="modal modal-grande">
+            <div class="modal-header">
+                <h3 id="modal-horario-titulo">Asignar horario</h3>
+                <button class="modal-cerrar" data-modal="modal-horario">✕</button>
+            </div>
+            <form id="form-horario">
+                <div class="campo-grupo">
+                    <label for="horario-empleado">Nombre del empleado</label>
+                    <input type="text" id="horario-empleado" placeholder="Ej: Juan García" required>
+                </div>
+                <div id="horario-dias-grid" style="margin-top:8px"></div>
+                <div class="modal-acciones">
+                    <button type="button" class="btn-secundario" data-modal="modal-horario">Cancelar</button>
+                    <button type="submit" class="btn-primario">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══════════════ SCRIPTS ══════════════ -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="../js/config.js"></script>
