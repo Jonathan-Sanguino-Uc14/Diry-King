@@ -1618,4 +1618,25 @@ document.getElementById("btn-agregar-horario").addEventListener("click", functio
     renderizarDashboard();
     renderizarFiltros();
     renderizarProductos();
+
+    /* =====================================================
+       REALTIME — ventas en vivo
+       Escucha inserciones en la tabla "ventas"; cuando llega
+       una nueva, recarga todo el estado y re-renderiza el
+       dashboard sin necesidad de recargar la página.
+       ===================================================== */
+    db.channel("dueño-ventas-live")
+        .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "ventas" },
+            async function () {
+                await cargarDatos();
+                renderizarDashboard();
+                /* Si la sección de facturas está visible, actualizarla también */
+                if (document.getElementById("seccion-facturas").classList.contains("activa")) {
+                    cargarYRenderizarFacturas();
+                }
+            }
+        )
+        .subscribe();
 });
