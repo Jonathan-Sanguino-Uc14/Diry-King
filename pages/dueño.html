@@ -992,6 +992,11 @@
             font-family: var(--fuente);
         }
 
+        /* ════════════════ CHARTS ════════════════ */
+        .charts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .chart-card { background: #111114; border: 1px solid #2a2a32; border-radius: 12px; padding: 16px; }
+        .chart-card-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #55555f; font-weight: 600; margin-bottom: 12px; }
+
         /* ════════════════ PRINT ════════════════ */
         @media print {
             body > *:not(#modal-ticket-dueno) { display: none !important; }
@@ -1037,6 +1042,14 @@
             <button class="nav-item" data-seccion="horario">
                 <span class="nav-icon material-symbols-outlined">schedule</span>
                 <span>Horario</span>
+            </button>
+            <button class="nav-item" data-seccion="facturas">
+                <span class="nav-icon material-symbols-outlined">receipt_long</span>
+                <span>Facturas</span>
+            </button>
+            <button class="nav-item" data-seccion="empleados">
+                <span class="nav-icon material-symbols-outlined">group</span>
+                <span>Empleados</span>
             </button>
         </nav>
 
@@ -1085,6 +1098,12 @@
                     <div class="stat-valor" id="total-productos">0</div>
                     <div class="stat-sub">en inventario</div>
                 </div>
+            </div>
+
+            <div class="charts-row">
+                <div class="chart-card"><div class="chart-card-title">Ventas por hora</div><canvas id="chart-horas" height="180"></canvas></div>
+                <div class="chart-card"><div class="chart-card-title">Top productos</div><canvas id="chart-productos" height="180"></canvas></div>
+                <div class="chart-card"><div class="chart-card-title">Efectivo vs Tarjeta</div><canvas id="chart-metodos" height="180"></canvas></div>
             </div>
 
             <div class="panel">
@@ -1253,6 +1272,67 @@
                             </tr>
                         </thead>
                         <tbody id="tabla-horarios-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ FACTURAS ══ -->
+        <section id="seccion-facturas" class="seccion">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Historial de facturas</h2>
+                    <div class="panel-filtros">
+                        <select id="filtro-facturas" class="filtro-input">
+                            <option value="todas">Todas</option>
+                            <option value="facturadas">Facturadas</option>
+                            <option value="pendientes">Pendientes</option>
+                        </select>
+                        <input type="date" id="facturas-fecha-desde" class="filtro-input">
+                        <input type="date" id="facturas-fecha-hasta" class="filtro-input">
+                        <button class="btn-primario" id="btn-buscar-facturas">Buscar</button>
+                    </div>
+                </div>
+                <div class="tabla-wrapper">
+                    <table class="tabla">
+                        <thead>
+                            <tr>
+                                <th>Ticket</th>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Total</th>
+                                <th>Método</th>
+                                <th>Código</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-facturas-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ EMPLEADOS ══ -->
+        <section id="seccion-empleados" class="seccion">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Gestión de empleados</h2>
+                    <button class="btn-primario" id="btn-agregar-empleado">
+                        <span class="material-symbols-outlined" style="font-size:15px">add</span>
+                        Nuevo empleado
+                    </button>
+                </div>
+                <div class="tabla-wrapper">
+                    <table class="tabla">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-empleados-body"></tbody>
                     </table>
                 </div>
             </div>
@@ -1516,7 +1596,44 @@
         </div>
     </div>
 
+    <!-- MODAL: Agregar / Editar Empleado -->
+    <div class="modal-overlay oculto" id="modal-empleado">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-empleado-titulo">Nuevo empleado</h3>
+                <button class="modal-cerrar" data-modal="modal-empleado">✕</button>
+            </div>
+            <form id="form-empleado">
+                <div class="campo-grupo">
+                    <label for="emp-nombre">Nombre completo</label>
+                    <input type="text" id="emp-nombre" placeholder="Ej: Juan García" required>
+                </div>
+                <div class="campo-grupo">
+                    <label for="emp-usuario">Usuario (login)</label>
+                    <input type="text" id="emp-usuario" placeholder="Ej: juan.garcia" required>
+                </div>
+                <div class="campo-grupo">
+                    <label for="emp-password">Contraseña</label>
+                    <input type="text" id="emp-password" placeholder="Dejar vacío para no cambiar">
+                </div>
+                <div class="campo-grupo">
+                    <label for="emp-rol">Rol</label>
+                    <select id="emp-rol" required>
+                        <option value="empleado">Empleado</option>
+                        <option value="gerente">Gerente</option>
+                        <option value="dueño">Dueño</option>
+                    </select>
+                </div>
+                <div class="modal-acciones">
+                    <button type="button" class="btn-secundario" data-modal="modal-empleado">Cancelar</button>
+                    <button type="submit" class="btn-primario">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ══════════════ SCRIPTS ══════════════ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="../js/config.js"></script>

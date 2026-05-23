@@ -11,6 +11,14 @@
 document.addEventListener("DOMContentLoaded", async function () {
 
     /* =====================================================
+       VARIABLES GLOBALES — Charts y Empleados
+       ===================================================== */
+    let chartHoras     = null;
+    let chartProductos = null;
+    let chartMetodos   = null;
+    let empleadoEditandoId = null;
+
+    /* =====================================================
        ESTADO LOCAL
        ===================================================== */
     const estado = {
@@ -99,8 +107,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         productos:   { h1: "Productos",    sub: "Gestión de inventario" },
         promociones: { h1: "Promociones",  sub: "Descuentos autorizados por supervisor" },
         calendario:  { h1: "Calendario",   sub: "Entregas programadas" },
-        horario:    { h1: "Horario",      sub: "Gestión de turnos y horarios de atención" },
-
+        horario:     { h1: "Horario",      sub: "Gestión de turnos y horarios de atención" },
+        facturas:    { h1: "Facturas",     sub: "Historial de ventas y estado de facturación" },
+        empleados:   { h1: "Empleados",    sub: "Gestión del equipo de trabajo" },
     };
 
     document.querySelectorAll(".nav-item").forEach(function (item) {
@@ -117,7 +126,9 @@ document.addEventListener("DOMContentLoaded", async function () {
             document.getElementById("subtitulo-seccion").textContent = TITULOS_SECCIONES[sec].sub;
 
             if (sec === "calendario") renderizarCalendario();
-            if (sec === "horario") renderizarHorarios();
+            if (sec === "horario")    renderizarHorarios();
+            if (sec === "facturas")   cargarYRenderizarFacturas();
+            if (sec === "empleados")  cargarYRenderizarEmpleados();
         });
     });
 
@@ -201,6 +212,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                 abrirTicketDueno(Number(this.dataset.ventaId));
             });
         });
+
+        renderizarGraficas(estado.ventas);
     }
 
     /* =====================================================
@@ -1001,6 +1014,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const panelTitulo = document.querySelector("#seccion-dashboard .panel-header h2");
         if (panelTitulo) panelTitulo.textContent = `Ventas individuales — ${fecha}`;
         renderizarDashboard();
+        renderizarGraficas(estado.ventas);
         this.textContent = "Ver ventas";
         this.disabled = false;
     });
@@ -1325,6 +1339,272 @@ document.getElementById("btn-agregar-horario").addEventListener("click", functio
     abrirModalHorario();
 });
     
+
+    /* =====================================================
+       GRÁFICAS — Chart.js
+       ===================================================== */
+    function renderizarGraficas(ventas) {
+        /* Destruir charts anteriores */
+        if (chartHoras)     { chartHoras.destroy();     chartHoras     = null; }
+        if (chartProductos) { chartProductos.destroy(); chartProductos = null; }
+        if (chartMetodos)   { chartMetodos.destroy();   chartMetodos   = null; }
+
+        /* Estilo global */
+        Chart.defaults.color = "#9494a8";
+
+        /* ── Chart 1: Ventas por hora (bar) ── */
+        const porHora = Array(24).fill(0);
+        ventas.forEach(function (v) {
+            const hora = v.venta?.hora ? parseInt(v.venta.hora.slice(0, 2), 10) : null;
+            if (hora !== null && hora >= 0 && hora <= 23) {
+                porHora[hora] += v.precio * v.cantidad;
+            }
+        });
+        const etiquetasHoras = Array.from({ length: 24 }, function (_, i) {
+            return i + ":00";
+        });
+        const ctxHoras = document.getElementById("chart-horas");
+        if (ctxHoras) {
+            chartHoras = new Chart(ctxHoras, {
+                type: "bar",
+                data: {
+                    labels: etiquetasHoras,
+                    datasets: [{
+                        label: "Ventas $",
+                        data: porHora,
+                        backgroundColor: "#22d3ee",
+                        borderRadius: 4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: "#2a2a32" }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+                        y: { grid: { color: "#2a2a32" }, ticks: { callback: function (v) { return "$" + v; } } },
+                    },
+                },
+            });
+        }
+
+        /* ── Chart 2: Top 5 productos (bar horizontal) ── */
+        const conteoProductos = {};
+        ventas.forEach(function (v) {
+            const nombre = v.nombre_producto || "—";
+            conteoProductos[nombre] = (conteoProductos[nombre] || 0) + v.cantidad;
+        });
+        const top5 = Object.entries(conteoProductos)
+            .sort(function (a, b) { return b[1] - a[1]; })
+            .slice(0, 5);
+        const ctxProductos = document.getElementById("chart-productos");
+        if (ctxProductos) {
+            chartProductos = new Chart(ctxProductos, {
+                type: "bar",
+                data: {
+                    labels: top5.map(function (e) { return e[0]; }),
+                    datasets: [{
+                        label: "Unidades",
+                        data: top5.map(function (e) { return e[1]; }),
+                        backgroundColor: "#a78bfa",
+                        borderRadius: 4,
+                    }],
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: "#2a2a32" } },
+                        y: { grid: { color: "#2a2a32" } },
+                    },
+                },
+            });
+        }
+
+        /* ── Chart 3: Efectivo vs Tarjeta (doughnut) ── */
+        const porMetodo = { efectivo: 0, tarjeta: 0 };
+        const ventasUnicas = {};
+        ventas.forEach(function (v) {
+            if (v.venta_id && !ventasUnicas[v.venta_id]) {
+                ventasUnicas[v.venta_id] = v.venta;
+            }
+        });
+        Object.values(ventasUnicas).forEach(function (venta) {
+            if (!venta) return;
+            if (venta.metodo_pago === "efectivo") {
+                porMetodo.efectivo += venta.total || 0;
+            } else {
+                porMetodo.tarjeta += venta.total || 0;
+            }
+        });
+        const ctxMetodos = document.getElementById("chart-metodos");
+        if (ctxMetodos) {
+            chartMetodos = new Chart(ctxMetodos, {
+                type: "doughnut",
+                data: {
+                    labels: ["Efectivo", "Tarjeta"],
+                    datasets: [{
+                        data: [porMetodo.efectivo, porMetodo.tarjeta],
+                        backgroundColor: ["#22d3ee", "#a78bfa"],
+                        borderWidth: 0,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: "bottom" },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    return " $" + ctx.parsed.toFixed(2);
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+        }
+    }
+
+    /* =====================================================
+       FACTURAS — Historial
+       ===================================================== */
+    async function cargarYRenderizarFacturas() {
+        const filtro = document.getElementById("filtro-facturas").value;
+        const desde  = document.getElementById("facturas-fecha-desde").value;
+        const hasta  = document.getElementById("facturas-fecha-hasta").value;
+        const tbody  = document.getElementById("tabla-facturas-body");
+        tbody.innerHTML = '<tr><td colspan="7" class="tabla-vacia">Cargando...</td></tr>';
+
+        let query = db.from("ventas").select("*").order("id", { ascending: false }).limit(200);
+        if (filtro === "facturadas")  query = query.eq("facturado", true);
+        if (filtro === "pendientes")  query = query.eq("facturado", false);
+        if (desde) query = query.gte("fecha", desde);
+        if (hasta) query = query.lte("fecha", hasta);
+
+        const { data: ventas } = await query;
+        tbody.innerHTML = "";
+
+        if (!ventas || ventas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="tabla-vacia">Sin ventas encontradas</td></tr>';
+            return;
+        }
+
+        ventas.forEach(function (v) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${generarNumeroTicket(v.id)}</td>
+                <td class="col-suave">${v.fecha}</td>
+                <td class="col-suave">${v.hora ? v.hora.slice(0, 5) : "—"}</td>
+                <td>${formatearPrecio(v.total)}</td>
+                <td class="col-suave">${textoMetodoPago(v.metodo_pago, v.tipo_tarjeta)}</td>
+                <td style="font-family:monospace;font-size:0.78rem">${v.codigo_factura || "—"}</td>
+                <td>
+                    <span style="padding:2px 10px;border-radius:99px;font-size:0.72rem;font-weight:600;
+                        background:${v.facturado ? "#dcfce7" : "#fef3c7"};
+                        color:${v.facturado ? "#16a34a" : "#92400e"}">
+                        ${v.facturado ? "Facturada" : "Pendiente"}
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById("btn-buscar-facturas").addEventListener("click", cargarYRenderizarFacturas);
+
+    /* =====================================================
+       EMPLEADOS — Gestión
+       ===================================================== */
+    async function cargarYRenderizarEmpleados() {
+        const tbody = document.getElementById("tabla-empleados-body");
+        tbody.innerHTML = '<tr><td colspan="4" class="tabla-vacia">Cargando...</td></tr>';
+
+        const { data: empleados } = await db
+            .from("usuarios")
+            .select("id, nombre, usuario, rol")
+            .order("nombre");
+
+        tbody.innerHTML = "";
+
+        if (!empleados || empleados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="tabla-vacia">Sin empleados registrados</td></tr>';
+            return;
+        }
+
+        const sesionId = window.sesionActual?.id || null;
+
+        empleados.forEach(function (emp) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><strong>${emp.nombre}</strong></td>
+                <td class="col-suave">${emp.usuario}</td>
+                <td class="col-suave">${emp.rol}</td>
+                <td>
+                    <button class="btn-editar btn-editar-empleado" data-id="${emp.id}">Editar</button>
+                    <button class="btn-eliminar btn-eliminar-empleado" data-id="${emp.id}"
+                        ${emp.id === sesionId ? "disabled title='No puedes eliminarte a ti mismo'" : ""}>✕</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll(".btn-editar-empleado").forEach(function (btn) {
+            btn.addEventListener("click", async function () {
+                const id = Number(this.dataset.id);
+                const emp = empleados.find(function (e) { return e.id === id; });
+                if (!emp) return;
+                empleadoEditandoId = id;
+                document.getElementById("modal-empleado-titulo").textContent = "Editar empleado";
+                document.getElementById("emp-nombre").value   = emp.nombre;
+                document.getElementById("emp-usuario").value  = emp.usuario;
+                document.getElementById("emp-password").value = "";
+                document.getElementById("emp-rol").value      = emp.rol;
+                abrirModal("modal-empleado");
+            });
+        });
+
+        tbody.querySelectorAll(".btn-eliminar-empleado").forEach(function (btn) {
+            btn.addEventListener("click", async function () {
+                const id = Number(this.dataset.id);
+                if (id === sesionId) return;
+                if (!confirm("¿Eliminar este empleado?")) return;
+                await db.from("usuarios").delete().eq("id", id);
+                cargarYRenderizarEmpleados();
+            });
+        });
+    }
+
+    document.getElementById("btn-agregar-empleado").addEventListener("click", function () {
+        empleadoEditandoId = null;
+        document.getElementById("modal-empleado-titulo").textContent = "Nuevo empleado";
+        document.getElementById("form-empleado").reset();
+        abrirModal("modal-empleado");
+    });
+
+    document.getElementById("form-empleado").addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const nombre   = document.getElementById("emp-nombre").value.trim();
+        const usuario  = document.getElementById("emp-usuario").value.trim();
+        const password = document.getElementById("emp-password").value.trim();
+        const rol      = document.getElementById("emp-rol").value;
+
+        if (empleadoEditandoId !== null) {
+            /* Editar empleado existente */
+            const datosUpdate = { nombre, usuario, rol };
+            if (password) datosUpdate.password = password;
+            await db.from("usuarios").update(datosUpdate).eq("id", empleadoEditandoId);
+        } else {
+            /* Nuevo empleado */
+            if (!password) { alert("La contraseña es requerida para un nuevo empleado."); return; }
+            await db.from("usuarios").insert({ nombre, usuario, password, rol });
+        }
+
+        cerrarModal("modal-empleado");
+        this.reset();
+        empleadoEditandoId = null;
+        cargarYRenderizarEmpleados();
+    });
 
     /* =====================================================
        MODALES — inicializar cierre

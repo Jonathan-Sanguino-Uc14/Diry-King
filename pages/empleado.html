@@ -888,6 +888,115 @@
     #input-fondo-inicial:focus,
     #input-clave-promo:focus,
     #select-promo:focus { border-color: #ffb2bf !important; }
+
+    /* ── OFFLINE BADGE ── */
+    #offline-badge { display: none; }
+    #offline-badge.visible { display: flex !important; }
+
+    /* ── THEME TOGGLE ── */
+    #btn-toggle-tema:hover { background: #5b3f44 !important; }
+
+    /* ── KEYBOARD HINTS TOAST ── */
+    #shortcuts-toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #353437; border: 1px solid #5b3f44; border-radius: 12px;
+      padding: 10px 18px; font-size: 0.78rem; color: #e4bdc2;
+      display: flex; gap: 16px; z-index: 200; pointer-events: none;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    #shortcuts-toast.visible { opacity: 1; }
+    #shortcuts-toast kbd {
+      background: #201f21; border: 1px solid #5b3f44; border-radius: 4px;
+      padding: 1px 6px; font-size: 0.72rem; color: #ffb2bf; font-family: monospace;
+    }
+
+    /* ── LIGHT MODE OVERRIDES ── */
+    html.light-mode body { background-color: #f5f5f7 !important; color: #1a1a1a !important; }
+    html.light-mode header { background: #ffffff !important; border-bottom-color: #e0e0e0 !important; }
+    html.light-mode .layout { background: #f5f5f7; }
+    html.light-mode .catalogo-panel { background: #f5f5f7 !important; border-right-color: #e0e0e0 !important; }
+    html.light-mode .orden-panel { background: #ffffff !important; }
+    html.light-mode .buscador-input { background: #ffffff !important; border-color: #ddd !important; color: #1a1a1a !important; }
+    html.light-mode .buscador-input::placeholder { color: #aaa !important; }
+    html.light-mode .buscador-input:focus { border-color: #c9004d !important; }
+    html.light-mode .buscador-icono { color: #aaa !important; }
+    html.light-mode .buscador-clear { color: #555 !important; }
+    html.light-mode .chip { background: #ffffff !important; border-color: #ddd !important; color: #555 !important; }
+    html.light-mode .chip:hover { border-color: #c9004d !important; color: #c9004d !important; }
+    html.light-mode .chip.activo { background: #c9004d !important; border-color: #c9004d !important; color: #fff !important; }
+    html.light-mode .producto-card { background: #ffffff !important; border-color: #e0e0e0 !important; }
+    html.light-mode .producto-card:hover { border-color: #c9004d !important; box-shadow: 0 8px 24px rgba(201,0,77,0.1) !important; }
+    html.light-mode .producto-card-nombre { color: #1a1a1a !important; }
+    html.light-mode .producto-card-categoria { color: #0077cc !important; }
+    html.light-mode .producto-card-precio { color: #c9004d !important; }
+    html.light-mode .producto-card-tamanos { color: #777 !important; }
+    html.light-mode .sin-resultados { color: #aaa !important; }
+    html.light-mode .orden-header { border-bottom-color: #e0e0e0 !important; }
+    html.light-mode .orden-header h2 { color: #1a1a1a !important; }
+    html.light-mode .btn-limpiar { border-color: #ddd !important; color: #555 !important; }
+    html.light-mode .btn-limpiar:hover { border-color: #c9004d !important; color: #c9004d !important; }
+    html.light-mode .orden-item { background: #f8f8fa !important; border-color: #e8e8ea !important; }
+    html.light-mode .orden-item:hover { border-color: #ddd !important; }
+    html.light-mode .orden-item-nombre { color: #1a1a1a !important; }
+    html.light-mode .orden-item-detalle { color: #666 !important; }
+    html.light-mode .orden-item-tamano { color: #0077cc !important; }
+    html.light-mode .orden-item-comentario { color: #777 !important; border-top-color: #e0e0e0 !important; }
+    html.light-mode .btn-cantidad { background: #f0f0f2 !important; border-color: #ddd !important; color: #1a1a1a !important; }
+    html.light-mode .btn-cantidad.btn-menos:hover { border-color: #c9004d !important; color: #c9004d !important; }
+    html.light-mode .btn-cantidad.btn-mas:hover { border-color: #c9004d !important; color: #c9004d !important; }
+    html.light-mode .orden-item-subtotal { color: #c9004d !important; }
+    html.light-mode .cantidad-num { color: #1a1a1a !important; }
+    html.light-mode .orden-vacia { color: #aaa !important; }
+    html.light-mode .comentario-orden-seccion { border-top-color: #e0e0e0 !important; }
+    html.light-mode .comentario-label { color: #555 !important; }
+    html.light-mode .comentario-textarea { background: #ffffff !important; border-color: #ddd !important; color: #1a1a1a !important; }
+    html.light-mode .comentario-textarea::placeholder { color: #aaa !important; }
+    html.light-mode .comentario-textarea:focus { border-color: #c9004d !important; }
+    html.light-mode .orden-totales { border-top-color: #e0e0e0 !important; }
+    html.light-mode .orden-total-fila { color: #555 !important; }
+    html.light-mode .orden-total-fila.grande { color: #1a1a1a !important; border-top-color: #e0e0e0 !important; }
+    html.light-mode .btn-secundario { border-color: #ddd !important; color: #555 !important; }
+    html.light-mode .btn-secundario:hover { border-color: #c9004d !important; color: #c9004d !important; }
+    html.light-mode .metodo-pago-seccion { border-top-color: #e0e0e0 !important; }
+    html.light-mode .metodo-label { color: #555 !important; }
+    html.light-mode .btn-metodo { background: #ffffff !important; border-color: #ddd !important; color: #555 !important; }
+    html.light-mode .btn-metodo:hover { border-color: #c9004d !important; }
+    html.light-mode .btn-metodo.activo { background: rgba(201,0,77,0.07) !important; border-color: #c9004d !important; color: #c9004d !important; }
+    html.light-mode .btn-tipo { background: #ffffff !important; border-color: #ddd !important; color: #555 !important; }
+    html.light-mode .btn-tipo.activo { background: rgba(201,0,77,0.07) !important; border-color: #c9004d !important; color: #c9004d !important; }
+    html.light-mode .campo-grupo label { color: #555 !important; }
+    html.light-mode .campo-grupo input { background: #ffffff !important; border-color: #ddd !important; color: #1a1a1a !important; }
+    html.light-mode .campo-grupo input:focus { border-color: #c9004d !important; }
+    html.light-mode .cambio-label { color: #555 !important; }
+    html.light-mode .cambio-valor { color: #0077cc !important; }
+    html.light-mode .cambio-valor.negativo { color: #c9004d !important; }
+    html.light-mode .turno-badge { background: #f0f0f2 !important; border-color: #ddd !important; color: #555 !important; }
+    html.light-mode .turno-badge.activo { background: rgba(0,119,204,0.08) !important; border-color: rgba(0,119,204,0.5) !important; color: #0077cc !important; }
+    html.light-mode .turno-dot { background: #ddd !important; }
+    html.light-mode .turno-badge.activo .turno-dot { background: #0077cc !important; box-shadow: 0 0 6px #0077cc !important; }
+    html.light-mode .modal-box, html.light-mode .modal-tamano-card, html.light-mode .modal-ticket-wrapper { background: #ffffff !important; border-color: #e0e0e0 !important; }
+    html.light-mode .modal-turno-titulo { color: #c9004d !important; }
+    html.light-mode .modal-turno-desc { color: #555 !important; }
+    html.light-mode .modal-turno-resumen { background: #f8f8fa !important; color: #555 !important; }
+    html.light-mode .opcion-tamano { background: #f8f8fa !important; border-color: #e0e0e0 !important; }
+    html.light-mode .opcion-tamano:hover { border-color: #c9004d !important; }
+    html.light-mode .opcion-tamano.seleccionado { border-color: #c9004d !important; background: rgba(201,0,77,0.06) !important; }
+    html.light-mode .opcion-tamano-nombre { color: #1a1a1a !important; }
+    html.light-mode .opcion-tamano.seleccionado .opcion-tamano-nombre { color: #c9004d !important; }
+    html.light-mode .opcion-tamano-precio { color: #555 !important; }
+    html.light-mode .opcion-tamano.seleccionado .opcion-tamano-precio { color: #c9004d !important; }
+    html.light-mode .modal-tamano-categoria { color: #0077cc !important; }
+    html.light-mode .modal-tamano-header h3 { color: #1a1a1a !important; }
+    html.light-mode .modal-tamano-label { color: #555 !important; }
+    html.light-mode .btn-modal-cerrar { background: #f0f0f2 !important; color: #555 !important; }
+    html.light-mode .btn-modal-cerrar:hover { background: #ddd !important; }
+    html.light-mode .btn-confirmar-tamano { background: #c9004d !important; color: #fff !important; }
+    html.light-mode .btn-confirmar-tamano:hover { background: #a8003f !important; }
+    html.light-mode .mcom-precio { color: #c9004d !important; }
+    html.light-mode #shortcuts-toast { background: #ffffff !important; border-color: #e0e0e0 !important; color: #555 !important; }
+    html.light-mode #shortcuts-toast kbd { background: #f0f0f2 !important; border-color: #ddd !important; color: #c9004d !important; }
+    html.light-mode #btn-toggle-tema { background: #f0f0f2 !important; border-color: #ddd !important; color: #555 !important; }
+    html.light-mode #btn-toggle-tema:hover { background: #e0e0e0 !important; }
   </style>
 </head>
 
@@ -929,6 +1038,15 @@
       <div id="caja-indicator" style="display:none;background:#1c1b1d;border:1px solid rgba(0,241,254,0.3);border-radius:8px;padding:4px 12px;font-size:0.8rem;color:#00f1fe;font-weight:600">
         💵 Caja: <span id="caja-monto">$0.00</span>
       </div>
+
+      <div id="offline-badge" style="background:rgba(255,180,171,0.15);border:1px solid rgba(255,180,171,0.5);border-radius:8px;padding:4px 12px;font-size:0.8rem;color:#ffb4ab;font-weight:600;align-items:center;gap:5px">
+        <span class="material-symbols-outlined" style="font-size:14px">wifi_off</span>
+        Sin conexión
+      </div>
+
+      <button id="btn-toggle-tema" title="Cambiar modo oscuro/claro" style="background:#353437;border:1px solid #5b3f44;border-radius:10px;color:#e4bdc2;padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:'Inter',sans-serif;transition:all 0.2s">
+        <span class="material-symbols-outlined" style="font-size:16px">light_mode</span>
+      </button>
 
       <button id="btn-cambiar-panel" style="display:none;background:#353437;border:1px solid #5b3f44;border-radius:10px;color:#e4bdc2;font-size:0.78rem;font-weight:600;padding:5px 13px;cursor:pointer;align-items:center;gap:5px;font-family:'Inter',sans-serif">
         <span class="material-symbols-outlined" style="font-size:15px">admin_panel_settings</span>
@@ -1306,6 +1424,15 @@
       </div>
 
     </div>
+  </div>
+
+  <!-- Toast de atajos de teclado -->
+  <div id="shortcuts-toast">
+    <span><kbd>/</kbd> Buscar</span>
+    <span><kbd>1</kbd> Efectivo &nbsp;<kbd>2</kbd> Tarjeta</span>
+    <span><kbd>Enter</kbd> Confirmar</span>
+    <span><kbd>Ctrl+L</kbd> Limpiar</span>
+    <span><kbd>Esc</kbd> Cerrar</span>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

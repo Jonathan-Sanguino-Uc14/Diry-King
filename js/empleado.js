@@ -669,6 +669,58 @@ document.addEventListener("DOMContentLoaded", async function () {
         this.disabled    = true;
         this.textContent = "Guardando...";
 
+        /* ── MODO OFFLINE: registrar localmente si no hay conexión ── */
+        if (!navigator.onLine) {
+            const localId   = Date.now();
+            const ventaLocal = {
+                id:               localId,
+                fecha:            obtenerFechaHoy(),
+                hora:             obtenerHoraAhora() + ":00",
+                metodo_pago:      estado.metodoPago,
+                tipo_tarjeta:     estado.metodoPago === "tarjeta" ? estado.tipoTarjeta : null,
+                total,
+                recibido:         montoRecibido,
+                cambio,
+                comentario_orden: comentarioOrden || null,
+                codigo_factura:   generarCodigoFactura(),
+                facturado:        false,
+                descuento:        estado.descuentoActual || 0,
+                promo_nombre:     estado.promoAplicada?.nombre || null,
+                turno_id:         turnoActual?.id || null,
+            };
+            const itemsLocal = estado.carrito.map(i => ({
+                producto_id:     i.productoId,
+                nombre_producto: i.nombre,
+                precio:          i.precio,
+                cantidad:        i.cantidad,
+                tamano:          i.tamano    || null,
+                comentario:      i.comentario || null,
+            }));
+
+            encolarVentaOffline(
+                { fecha: ventaLocal.fecha, hora: ventaLocal.hora, metodo_pago: ventaLocal.metodo_pago,
+                  tipo_tarjeta: ventaLocal.tipo_tarjeta, total: ventaLocal.total,
+                  recibido: ventaLocal.recibido, cambio: ventaLocal.cambio,
+                  comentario_orden: ventaLocal.comentario_orden, codigo_factura: ventaLocal.codigo_factura,
+                  facturado: false, descuento: ventaLocal.descuento,
+                  promo_nombre: ventaLocal.promo_nombre, turno_id: ventaLocal.turno_id },
+                itemsLocal
+            );
+
+            /* Decremento optimista de stock local */
+            estado.carrito.forEach(function (item) {
+                const prod = estado.productos.find(p => p.id === item.productoId);
+                if (prod) prod.stock = Math.max(0, (prod.stock || 0) - item.cantidad);
+            });
+
+            mostrarTicket(ventaLocal, estado.carrito, comentarioOrden);
+            limpiarOrden();
+            this.disabled    = false;
+            this.textContent = "Confirmar venta";
+            renderizarProductos();
+            return;
+        }
+
         /* ── Paso 1: Crear la venta principal ── */
         const { data: ventaNueva, error: errorVenta } = await db
             .from("ventas")
@@ -1253,6 +1305,209 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         XLSX.writeFile(wb, `ventas_${anio}-${String(mes).padStart(2,"0")}.xlsx`);
     }
+
+    /* =====================================================
+       MODO OFFLINE
+       Detecta conexión y encola ventas en localStorage
+       para sincronizar cuando vuelva la conexión.
+       ===================================================== */
+    const OFFLINE_QUEUE_KEY = "dk_offline_queue";
+
+    function actualizarIndicadorOnline() {
+        const badge = document.getElementById("offline-badge");
+        if (!badge) return;
+        if (navigator.onLine) {
+            badge.classList.remove("visible");
+        } else {
+            badge.classList.add("visible");
+        }
+    }
+
+    function encolarVentaOffline(ventaData, itemsData) {
+        const cola = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]");
+        cola.push({ ventaData, itemsData, ts: Date.now() });
+        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(cola));
+    }
+
+    async function sincronizarColaOffline() {
+        const cola = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || "[]");
+        if (cola.length === 0) return;
+
+        localStorage.removeItem(OFFLINE_QUEUE_KEY);
+        let ok = 0;
+        const reencolar = [];
+
+        for (const entrada of cola) {
+            try {
+                const { data: v, error } = await db.from("ventas")
+                    .insert(entrada.ventaData).select().single();
+                if (error) throw error;
+
+                const items = entrada.itemsData.map(i => ({ ...i, venta_id: v.id }));
+                await db.from("venta_items").insert(items);
+
+                await Promise.all(items.map(function (i) {
+                    const prod = estado.productos.find(p => p.id === i.producto_id);
+                    if (!prod) return Promise.resolve();
+                    const nuevoStock = Math.max(0, (prod.stock || 0) - i.cantidad);
+                    return db.from("productos").update({ stock: nuevoStock }).eq("id", i.producto_id);
+                }));
+                ok++;
+            } catch (err) {
+                reencolar.push(entrada);
+            }
+        }
+
+        if (reencolar.length > 0) {
+            localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(reencolar));
+        }
+
+        if (ok > 0) {
+            alert(`✅ Conexión restaurada. Se sincronizaron ${ok} venta(s) registrada(s) sin conexión.`);
+            await cargarDatos();
+            renderizarProductos();
+        }
+    }
+
+    window.addEventListener("online",  function () { actualizarIndicadorOnline(); sincronizarColaOffline(); });
+    window.addEventListener("offline", function () { actualizarIndicadorOnline(); });
+    actualizarIndicadorOnline();
+
+    /* Verificar cola pendiente al inicio (por si hay ventas de sesión anterior) */
+    setTimeout(async function () {
+        if (navigator.onLine) await sincronizarColaOffline();
+    }, 2000);
+
+
+    /* =====================================================
+       MODO OSCURO / CLARO — TOGGLE
+       Persiste la preferencia en localStorage.
+       Alterna la clase "light-mode" en <html>.
+       ===================================================== */
+    function aplicarTema(tema) {
+        const html = document.documentElement;
+        if (tema === "light") {
+            html.classList.add("light-mode");
+            html.classList.remove("dark");
+        } else {
+            html.classList.remove("light-mode");
+            html.classList.add("dark");
+        }
+        const btn = document.getElementById("btn-toggle-tema");
+        if (!btn) return;
+        const esOscuro = tema !== "light";
+        btn.querySelector(".material-symbols-outlined").textContent =
+            esOscuro ? "light_mode" : "dark_mode";
+        btn.title = esOscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+    }
+
+    (function inicializarTema() {
+        const guardado = localStorage.getItem("dk_theme") || "dark";
+        aplicarTema(guardado);
+    })();
+
+    document.getElementById("btn-toggle-tema").addEventListener("click", function () {
+        const esOscuro = !document.documentElement.classList.contains("light-mode");
+        const nuevoTema = esOscuro ? "light" : "dark";
+        localStorage.setItem("dk_theme", nuevoTema);
+        aplicarTema(nuevoTema);
+    });
+
+
+    /* =====================================================
+       ATAJOS DE TECLADO
+       /       → enfocar buscador
+       Ctrl+F  → enfocar buscador
+       1       → método efectivo
+       2       → método tarjeta
+       Enter   → confirmar venta (si carrito no vacío)
+       Ctrl+L  → limpiar orden
+       Escape  → cerrar modal abierto
+       ===================================================== */
+    let toastTimer = null;
+
+    function mostrarToastAtajos() {
+        const t = document.getElementById("shortcuts-toast");
+        if (!t) return;
+        t.classList.add("visible");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("visible"), 3000);
+    }
+
+    document.addEventListener("keydown", function (e) {
+        const tag = document.activeElement?.tagName;
+        const enInput = ["INPUT", "TEXTAREA", "SELECT"].includes(tag);
+
+        /* Escape → cerrar el modal abierto más reciente (excepto confirmación y cierres críticos) */
+        if (e.key === "Escape") {
+            const criticos = ["modal-confirmacion", "modal-cierre-turno", "modal-cierre-mes"];
+            const abiertos = [...document.querySelectorAll(".modal-overlay:not(.oculto)")]
+                .filter(m => !criticos.includes(m.id));
+            if (abiertos.length > 0) {
+                abiertos[abiertos.length - 1].classList.add("oculto");
+                e.preventDefault();
+            }
+            return;
+        }
+
+        const hayModalAbierto = document.querySelector(".modal-overlay:not(.oculto)") !== null;
+        if (hayModalAbierto) return;
+
+        /* / → enfocar buscador */
+        if (e.key === "/" && !enInput) {
+            e.preventDefault();
+            document.getElementById("buscador").focus();
+            return;
+        }
+
+        /* Ctrl+F → enfocar buscador */
+        if (e.ctrlKey && e.key === "f") {
+            e.preventDefault();
+            document.getElementById("buscador").focus();
+            return;
+        }
+
+        /* Ctrl+L → limpiar orden */
+        if (e.ctrlKey && e.key === "l") {
+            e.preventDefault();
+            if (estado.carrito.length > 0) {
+                if (confirm("¿Limpiar la orden actual?")) limpiarOrden();
+            }
+            return;
+        }
+
+        /* Enter → confirmar venta */
+        if (e.key === "Enter" && !enInput) {
+            const btnConf = document.getElementById("btn-confirmar");
+            if (!btnConf.disabled && estado.carrito.length > 0) {
+                e.preventDefault();
+                btnConf.click();
+            }
+            return;
+        }
+
+        /* 1 → efectivo */
+        if (e.key === "1" && !enInput) {
+            e.preventDefault();
+            document.querySelector('.btn-metodo[data-metodo="efectivo"]').click();
+            return;
+        }
+
+        /* 2 → tarjeta */
+        if (e.key === "2" && !enInput) {
+            e.preventDefault();
+            document.querySelector('.btn-metodo[data-metodo="tarjeta"]').click();
+            return;
+        }
+
+        /* ? → mostrar toast de atajos */
+        if (e.key === "?" && !enInput) {
+            e.preventDefault();
+            mostrarToastAtajos();
+            return;
+        }
+    });
+
 
     /* =====================================================
        ARRANQUE
