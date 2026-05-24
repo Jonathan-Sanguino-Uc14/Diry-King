@@ -255,6 +255,7 @@
             padding: 24px;
             overflow-y: auto;
             flex: 1;
+            min-height: 0;
         }
 
         .seccion.activa { display: flex; }
@@ -264,6 +265,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 14px;
+            flex-shrink: 0;
         }
 
         .stat-card {
@@ -308,7 +310,6 @@
             background: #111114;
             border: 1px solid #2a2a32;
             border-radius: 12px;
-            overflow: hidden;
         }
 
         .panel-header {
@@ -426,6 +427,10 @@
 
         /* ════════════════ TABLE ════════════════ */
         .tabla-wrapper { overflow-x: auto; }
+        #seccion-dashboard .tabla-wrapper {
+            max-height: 380px;
+            overflow-y: auto;
+        }
         #seccion-productos .tabla-wrapper,
         #seccion-promociones .tabla-wrapper,
         #seccion-horario .tabla-wrapper,
@@ -1032,7 +1037,7 @@
         }
 
         /* ════════════════ CHARTS ════════════════ */
-        .charts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .charts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; flex-shrink: 0; }
         .chart-card { background: #111114; border: 1px solid #2a2a32; border-radius: 12px; padding: 16px; }
         .chart-card-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #55555f; font-weight: 600; margin-bottom: 12px; }
 
