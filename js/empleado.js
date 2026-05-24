@@ -70,6 +70,9 @@ document.addEventListener("DOMContentLoaded", async function () {
               .select("*, categoria:categorias(nombre), tamanos:producto_tamanos(*)")
               .order("nombre"),
         ]);
+        if (resProd.error) console.error("[empleado] Error cargando productos:", resProd.error);
+        if (resCats.error) console.error("[empleado] Error cargando categorías:", resCats.error);
+        console.log(`[empleado] Productos cargados: ${(resProd.data || []).length}`);
         estado.categorias = resCats.data  || [];
         estado.productos  = resProd.data  || [];
     }

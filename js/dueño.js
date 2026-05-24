@@ -70,6 +70,12 @@ document.addEventListener("DOMContentLoaded", async function () {
             db.from("entregas").select("*").order("fecha"),
         ]);
 
+        if (resProd.error)    console.error("[dueño] Error cargando productos:", resProd.error);
+        if (resCats.error)    console.error("[dueño] Error cargando categorías:", resCats.error);
+        if (resEntregas.error) console.error("[dueño] Error cargando entregas:", resEntregas.error);
+
+        console.log(`[dueño] Productos cargados: ${(resProd.data || []).length}`);
+
         estado.categorias = resCats.data    || [];
         estado.productos  = resProd.data    || [];
         estado.entregas   = resEntregas.data || [];
@@ -125,6 +131,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             document.getElementById("titulo-seccion").textContent    = TITULOS_SECCIONES[sec].h1;
             document.getElementById("subtitulo-seccion").textContent = TITULOS_SECCIONES[sec].sub;
 
+            if (sec === "productos")  { renderizarFiltros(); renderizarProductos(); }
             if (sec === "calendario") renderizarCalendario();
             if (sec === "horario")    renderizarHorarios();
             if (sec === "facturas")   cargarYRenderizarFacturas();
@@ -1632,7 +1639,10 @@ document.getElementById("btn-agregar-horario").addEventListener("click", functio
             async function () {
                 await cargarDatos();
                 renderizarDashboard();
-                /* Si la sección de facturas está visible, actualizarla también */
+                if (document.getElementById("seccion-productos").classList.contains("activa")) {
+                    renderizarFiltros();
+                    renderizarProductos();
+                }
                 if (document.getElementById("seccion-facturas").classList.contains("activa")) {
                     cargarYRenderizarFacturas();
                 }

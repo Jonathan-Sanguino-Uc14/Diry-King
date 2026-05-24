@@ -403,8 +403,37 @@
             color: #22d3ee;
         }
 
+        /* ════════════════ BADGE TAMAÑOS ════════════════ */
+        .badge-tamanos {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .badge-tamano {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(34,211,238,0.08);
+            border: 1px solid rgba(34,211,238,0.20);
+            color: #a0e8f0;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 9px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .sin-tamanos { font-size: 0.76rem; color: #44444e; font-style: italic; }
+
         /* ════════════════ TABLE ════════════════ */
         .tabla-wrapper { overflow-x: auto; }
+        #seccion-productos .tabla-wrapper,
+        #seccion-promociones .tabla-wrapper,
+        #seccion-horario .tabla-wrapper,
+        #seccion-facturas .tabla-wrapper,
+        #seccion-empleados .tabla-wrapper {
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+        }
 
         .tabla {
             width: 100%;
@@ -789,59 +818,69 @@
         }
 
         .tamanos-columna {
-            padding: 12px 20px;
+            padding: 18px 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 14px;
         }
 
-        .tamanos-header { display: flex; flex-direction: column; gap: 4px; }
-        .tamanos-hint { font-size: 0.7rem; color: #55555f; }
+        .tamanos-header { display: flex; flex-direction: column; gap: 6px; }
+        .tamanos-hint { font-size: 0.72rem; color: #55555f; line-height: 1.4; }
 
-        .tamanos-lista-fija { display: flex; flex-direction: column; gap: 6px; }
+        .tamanos-lista-fija { display: flex; flex-direction: column; gap: 10px; }
 
         /* JS generates tamano-fila + toggles .activo */
         .tamano-fila {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 9px 12px;
+            gap: 12px;
+            padding: 13px 16px;
             background: #18181c;
             border: 1px solid #2a2a32;
-            border-radius: 8px;
+            border-radius: 10px;
             transition: all 0.14s;
         }
 
         .tamano-fila.activo {
-            border-color: rgba(34,211,238,0.30);
-            background: rgba(34,211,238,0.05);
+            border-color: rgba(34,211,238,0.35);
+            background: rgba(34,211,238,0.06);
         }
 
         .tamano-fila label {
             flex: 1;
-            font-size: 0.82rem;
-            color: #9494a8;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: #b0b0c4;
             cursor: pointer;
         }
+
+        .tamano-fila.activo label { color: #e8e8f0; }
 
         .tamano-fila input[type="number"],
         .tamano-fila input[type="text"] {
-            width: 80px;
-            padding: 5px 8px;
+            width: 96px;
+            padding: 7px 10px;
             background: #0b0b0d;
             border: 1px solid #2a2a32;
-            border-radius: 6px;
+            border-radius: 7px;
             color: #e8e8f0;
             font-family: 'Inter', sans-serif;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .tamano-fila input[type="number"]:focus,
+        .tamano-fila input[type="text"]:focus {
+            border-color: #22d3ee;
         }
 
         .tamano-fila input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
+            width: 17px;
+            height: 17px;
             accent-color: #22d3ee;
             cursor: pointer;
+            flex-shrink: 0;
         }
 
         /* ════════════════ CATEGORIAS MODAL ════════════════ */

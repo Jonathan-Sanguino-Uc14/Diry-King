@@ -279,23 +279,27 @@
     /* ── PRODUCT GRID (JS-generated) ── */
     .productos-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
       gap: 12px;
       overflow-y: auto;
       padding-bottom: 8px;
+      flex: 1;
+      min-height: 0;
+      align-content: start;
     }
     .producto-card {
       background: #201f21;
       border: 1px solid #353437;
       border-radius: 16px;
-      padding: 16px;
+      padding: 14px 16px;
       cursor: pointer;
       transition: all 0.2s;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 4px;
       position: relative;
       overflow: hidden;
+      min-height: 120px;
     }
     .producto-card:hover {
       border-color: #ffb2bf;
@@ -310,10 +314,15 @@
       color: #00f1fe;
     }
     .producto-card-nombre {
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       font-weight: 600;
       color: #e5e1e4;
-      line-height: 1.3;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
     }
     .producto-card-tamanos {
       font-size: 0.74rem;
@@ -323,7 +332,8 @@
       font-size: 1rem;
       font-weight: 700;
       color: #ffb2bf;
-      margin-top: 4px;
+      margin-top: auto;
+      padding-top: 4px;
     }
     .producto-badge {
       position: absolute;
